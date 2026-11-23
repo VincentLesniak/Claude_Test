@@ -26,7 +26,9 @@ $run = function (string $uri, array $get = []): string {
 
 return [
     '"/" appelle AppController::indexAction()' => function () use ($run): void {
-        Assert::contains('<h1>Bienvenue sur PiePHP</h1>', $run('/'));
+        // Mise à jour (partie « My cinema by PiePHP ») : la page d'accueil
+        // est devenue la liste des films, titrée « my_cinema ».
+        Assert::contains('<h1>my_cinema</h1>', $run('/'));
     },
 
     '"/user/add" appelle UserController::addAction()' => function () use ($run): void {

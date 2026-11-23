@@ -23,7 +23,9 @@ return [
     'la page d\'accueil affiche la vue App/index dans le layout' => function (): void {
         $html = Server::request('/');
         Assert::contains('<!doctype html>', $html, 'le layout est absent');
-        Assert::contains('<h1>Bienvenue sur PiePHP</h1>', $html, 'la vue est absente');
+        // Mise à jour (partie « My cinema by PiePHP ») : l'accueil liste les
+        // films, sous le titre « my_cinema ».
+        Assert::contains('<h1>my_cinema</h1>', $html, 'la vue est absente');
     },
 
     // php -S renvoie vers index.php toute URL qui ne correspond à aucun
