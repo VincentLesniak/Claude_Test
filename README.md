@@ -61,3 +61,67 @@ machines fournies par GitHub (`ubuntu-latest`, gratuit pour un dépôt public,
   `Core/`, `src/`, `tests/` et `index.php` (les vues de `src/View/` sont
   ignorées). En local : `phpcs --standard=PSR12 --ignore=src/View/,webroot/ Core/ src/ tests/ index.php`
 - **Tests** : `php tests/run.php`.
+
+## Versionnage
+
+### Numéro de version : `VERSION` et versionnage sémantique
+
+La version courante est dans le fichier `VERSION` (une seule ligne, ex.
+`0.1.0`). Un fichier texte tout simple, c'est la "source de vérité" lisible
+aussi bien par PHP que par les scripts du CI.
+
+Le numéro suit le [versionnage sémantique](https://semver.org/lang/fr/),
+MAJEUR.MINEUR.CORRECTIF :
+
+- **CORRECTIF** (0.1.0 -> 0.1.1) : correction de bug, rien ne change pour
+  l'utilisateur du framework.
+- **MINEUR** (0.1.0 -> 0.2.0) : nouvelle fonctionnalité compatible avec
+  l'existant.
+- **MAJEUR** (0.x -> 1.0.0) : changement qui casse la compatibilité.
+
+Tant qu'on est en `0.x`, le framework est "en construction" : on monte la
+version MINEURE à chaque étape du sujet terminée (0.1.0 = étapes 1 à 3,
+0.2.0 = sécurité et routeur...). La **1.0.0** correspondra au sujet complet,
+le jour du rendu.
+
+### Journal : `CHANGELOG.md`
+
+Chaque PR ajoute une ligne dans la section « Non publié » du CHANGELOG
+(Ajouté / Modifié / Corrigé / Supprimé). Le Git log dit *comment* le code a
+changé, commit par commit ; le CHANGELOG dit *ce qui a changé* pour un
+humain, version par version. Un test (`tests/VersionTest.php`) vérifie que
+la version de `VERSION` a bien sa section dans le CHANGELOG.
+
+### Branches
+
+- `main` : uniquement les versions publiées, envoyées directement depuis
+  `dev` (sans PR). Chaque version porte un tag `X.Y.Z`. C'est ce qu'on rend ou ce qu'on montre en soutenance.
+- `dev` : la branche d'intégration. Tout le travail en cours y est
+  fusionné, via des pull requests validées par le CI.
+- une branche par fonctionnalité (ex. `feature/routeur`), créée depuis
+  `dev` et fusionnée dans `dev` par pull request.
+
+Pourquoi séparer `main` et `dev` ? Pour avoir toujours une version stable
+sous la main, même si `dev` est cassé en plein milieu d'une étape.
+
+### Publier une version (release)
+
+1. Sur `dev`, renommer « Non publié » en `[X.Y.Z] - AAAA-MM-JJ` dans le
+   CHANGELOG, recréer une section « Non publié » vide au-dessus, et écrire
+   `X.Y.Z` dans `VERSION`.
+2. Envoyer la version directement sur `main`, sans pull request : le code
+   a déjà été relu et validé par le CI dans les PR vers `dev`.
+   `git checkout main && git merge --ff-only dev && git push origin main`
+   (`--ff-only` refuse la fusion si `main` contient un commit absent de
+   `dev` : `main` reste ainsi une simple copie des versions de `dev`.)
+3. Sur `main`, créer et pousser le tag (avec ou sans `v` devant) :
+   `git tag -a X.Y.Z -m "Version X.Y.Z" && git push origin X.Y.Z`,
+   ou créer la release depuis l'interface GitHub (Releases > Draft a new
+   release), qui crée le tag au passage.
+4. Le workflow `.github/workflows/release.yml` vérifie que le tag
+   correspond à `VERSION`, relance les tests et publie la release GitHub
+   (ou complète celle qui existe) avec les notes du CHANGELOG. Il peut
+   aussi être lancé à la main depuis l'onglet Actions pour un tag existant.
+
+Un tag *annoté* (`-a`) enregistre l'auteur, la date et un message, comme un
+commit : c'est la forme recommandée pour marquer une version.

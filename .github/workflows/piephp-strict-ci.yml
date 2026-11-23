@@ -43,6 +43,8 @@ jobs:
             "index.php"
             "README.md"
             "robots.txt"
+            "VERSION"
+            "CHANGELOG.md"
             # Étape 2 : vue de connexion
             "src/View/User/login.php"
             # Étape 3 : lancement de l'application
