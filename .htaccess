@@ -1,0 +1,36 @@
+# ---------------------------------------------------------------------------
+# .htaccess : configuration d'Apache pour ce dossier (et ses sous-dossiers)
+# ---------------------------------------------------------------------------
+# Apache lit ce fichier à chaque requête. Il permet de changer son
+# comportement sans toucher à la configuration globale du serveur.
+# Prérequis : le module mod_rewrite activé (sudo a2enmod rewrite) et
+# "AllowOverride All" pour ce dossier dans la config du VirtualHost.
+#
+# !! Les règles ci-dessous sont VOLONTAIREMENT commentées pour l'instant. !!
+# Elles correspondent à la partie "Sécurité de l'application" du sujet.
+# Si on les activait dès maintenant, toute URL serait redirigée vers
+# index.php, et on ne pourrait plus ouvrir src/View/User/login.php pour
+# tester la première étape. On les activera (en retirant les "#") plus tard.
+# ---------------------------------------------------------------------------
+
+# 1) Active le moteur de réécriture d'URL.
+# RewriteEngine On
+
+# 2) Chemin de base du projet vu depuis le navigateur (après localhost).
+#    Ici le projet est dans /var/www/html/PiePHP -> http://localhost/PiePHP/
+#    À adapter selon ton installation !
+# RewriteBase /PiePHP/
+
+# 3) Conditions (RewriteCond) : la règle suivante ne s'applique que si...
+#    ... le fichier demandé n'existe pas sur le disque  [OR]  ...
+# RewriteCond %{REQUEST_FILENAME} !-f [OR]
+#    ... l'URL ne fait PAS partie de la liste blanche : webroot/, index.php
+#    et robots.txt. (le "!" veut dire "ne correspond pas").
+# RewriteCond %{REQUEST_URI} !^/PiePHP/(webroot/.+|index\.php|robots\.txt)$
+
+# 4) Règle : n'importe quelle URL (^) est envoyée vers index.php.
+#    QSA = on garde les paramètres ?a=b de l'URL d'origine.
+#    L   = "Last", on arrête de lire les règles suivantes.
+#    Résultat : index.php devient le point d'entrée UNIQUE de l'application
+#    (pattern "Front Controller"), personne ne peut lire Core/ ou src/.
+# RewriteRule ^ index.php [QSA,L]
