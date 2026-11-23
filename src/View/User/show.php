@@ -17,23 +17,38 @@
  * htmlspecialchars() reçoit "false" en 4e paramètre (double_encode) : l'email
  * a déjà été échappé par Request à l'inscription, on évite de l'échapper deux
  * fois ("&amp;amp;" à l'écran). Les balises restent bien neutralisées.
+ *
+ * Mise à jour (étape "Avancé - le moteur de templates") : cette vue utilise
+ * maintenant les tags du moteur (Core/TemplateEngine.php, le tableau des
+ * équivalences est en haut de ce fichier). Les règles ci-dessus restent
+ * vraies, c'est le moteur qui les applique :
+ *   - les doubles accolades deviennent htmlentities(..., ENT_QUOTES, 'UTF-8',
+ *     false) : même protection XSS que htmlspecialchars(), toujours sans
+ *     double échappement (le "false" à la fin) ;
+ *   - les directives isset, if, else et endif (précédées d'un arobase)
+ *     deviennent les "if (...) :" qu'on écrivait avant à la main.
+ * Le (int) devant l'id disparaît : les accolades échappent tout, un nombre
+ * aussi.
+ * Attention : le moteur lit TOUT le fichier, commentaires compris. On n'écrit
+ * donc pas de vrai tag dans un commentaire de vue (il serait compilé lui
+ * aussi : sans danger dans un commentaire PHP, mais source de confusion).
  */
 ?>
 <h1>Profil</h1>
 
-<?php if (isset($error)) : ?>
-    <p class="error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8', false) ?></p>
-<?php endif; ?>
-<?php if (!empty($example)) : ?>
-    <p>Profil d'exemple. <a href="<?= BASE_URI ?>/user/login">Connectez-vous</a> pour voir le vôtre.</p>
-<?php else : ?>
-    <p><a href="<?= BASE_URI ?>/user/logout">Se déconnecter</a></p>
-<?php endif; ?>
+@isset($error)
+    <p class="error" role="alert">{{ $error }}</p>
+@endisset
+@if (!empty($example))
+    <p>Profil d'exemple. <a href="{{ BASE_URI }}/user/login">Connectez-vous</a> pour voir le vôtre.</p>
+@else
+    <p><a href="{{ BASE_URI }}/user/logout">Se déconnecter</a></p>
+@endif
 
 <dl>
     <dt>Identifiant</dt>
-    <dd><?= (int) $user['id'] ?></dd>
+    <dd>{{ $user['id'] }}</dd>
 
     <dt>Email</dt>
-    <dd><?= htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8', false) ?></dd>
+    <dd>{{ $user['email'] }}</dd>
 </dl>

@@ -145,6 +145,29 @@ Les relations ne sont chargées que sur un niveau (les commentaires d'un
 article ne contiennent pas à leur tour leur article), et ne sont jamais
 enregistrées par `save()`.
 
+## Le moteur de templates (`Core/TemplateEngine.php`)
+
+Ajout (étape « Avancé - le moteur de templates ») : `render()` passe chaque
+vue (et le layout) dans un petit moteur inspiré de Blade, qui remplace des
+tags courts par du PHP classique avant d'exécuter la vue :
+
+| Dans la vue | PHP produit |
+| --- | --- |
+| `{{ $title }}` | `<?= htmlentities((string) ($title), ENT_QUOTES, 'UTF-8', false) ?>` |
+| `@if (cond)` / `@elseif (cond)` / `@else` / `@endif` | `<?php if (cond) : ?>` ... `<?php endif; ?>` |
+| `@foreach ($users as $user)` / `@endforeach` | `<?php foreach ($users as $user) : ?>` ... `<?php endforeach; ?>` |
+| `@isset($x)` / `@endisset` | `<?php if (isset($x)) : ?>` ... `<?php endif; ?>` |
+| `@empty($x)` / `@endempty` | `<?php if (empty($x)) : ?>` ... `<?php endif; ?>` |
+
+- `{{ }}` échappe **toujours** le HTML (protection XSS), sans ré-échapper ce
+  que `Request` a déjà échappé.
+- Une vue en PHP pur ressort inchangée : les anciennes vues fonctionnent.
+- Un `@` collé à un mot (`contact@if.fr`) n'est pas une directive.
+- Les vues compilées sont gardées en cache dans le dossier temporaire du
+  système (`piephp-views/`) et recompilées seulement quand la vue change.
+
+Exemple : `src/View/User/show.php`.
+
 ## Tests
 
 Depuis la racine du projet : `php tests/run.php`

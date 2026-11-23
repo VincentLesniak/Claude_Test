@@ -74,9 +74,10 @@ jobs:
             "Core/ORM.php"
             # Étape "Les entités"
             "Core/Entity.php"
+            # Étape "Avancé - le moteur de templates"
+            "Core/TemplateEngine.php"
 
             # Étapes suivantes (à décommenter quand elles sont codées) :
-            # "Core/TemplateEngine.php"
             # "src/View/Flash/default.php"
             # "src/View/Flash/error.php"
             # "src/View/Flash/success.php"

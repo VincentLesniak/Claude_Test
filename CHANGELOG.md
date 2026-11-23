@@ -13,6 +13,21 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
+### Ajouté
+- Moteur de templates `Core/TemplateEngine.php` (étape « Avancé - le moteur
+  de templates ») : `{{ }}` (affichage échappé avec `htmlentities()`),
+  `@if` / `@elseif` / `@else` / `@endif`, `@foreach` / `@endforeach`,
+  `@isset` / `@endisset`, `@empty` / `@endempty`. Les parenthèses imbriquées
+  sont gérées par une regex récursive.
+- Cache des vues compilées (dossier temporaire du système), recompilées
+  seulement quand la vue est modifiée.
+- Tests du moteur (`tests/TemplateEngineTest.php`).
+
+### Modifié
+- `Controller::render()` inclut la vue et le layout compilés par le moteur.
+  Les vues en PHP pur restent compatibles.
+- La vue `User/show.php` utilise la nouvelle syntaxe.
+
 ## [0.6.0] - 2026-11-23
 
 Étape « Avancé - Les relations de model » du sujet.
