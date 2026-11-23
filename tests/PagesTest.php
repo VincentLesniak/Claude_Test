@@ -9,8 +9,18 @@ use Tests\Assert;
 use Tests\Server;
 
 return [
-    'la page d\'accueil lance l\'application' => function (): void {
-        Assert::contains('Core\Core [OK]', Server::request('/'));
+    'la page d\'accueil appelle AppController::indexAction()' => function (): void {
+        Assert::contains('Controller\AppController::indexAction [OK]', Server::request('/'));
+    },
+
+    // php -S renvoie vers index.php toute URL qui ne correspond à aucun
+    // fichier : on peut donc tester le routage "/controller/action".
+    '/user/add appelle UserController::addAction()' => function (): void {
+        Assert::contains('Controller\UserController::addAction [OK]', Server::request('/user/add'));
+    },
+
+    'une page inexistante affiche la 404' => function (): void {
+        Assert::contains('<h1>404</h1>', Server::request('/page/inexistante'));
     },
 
     'index.php ne produit ni erreur ni avertissement PHP' => function (): void {

@@ -10,8 +10,8 @@
 /**
  * index.php : point d'entrée UNIQUE de l'application.
  *
- * Toutes les requêtes passeront par ce fichier (grâce au .htaccess, plus
- * tard). Son rôle est volontairement minuscule : préparer l'environnement,
+ * Toutes les requêtes passent par ce fichier (grâce au .htaccess).
+ * Son rôle est volontairement minuscule : préparer l'environnement,
  * puis donner la main au framework (la classe Core\Core).
  *
  * Rappel de l'étape 2 : pour revoir le contenu des superglobales, il
@@ -44,6 +44,7 @@ define('BASE_URI', str_replace('\\', '/', substr(__DIR__, strlen($_SERVER['DOCUM
 require_once implode(DIRECTORY_SEPARATOR, ['Core', 'autoload.php']);
 
 // On crée l'application (l'autoloader charge Core/Core.php à ce moment-là)
-// puis on la lance. Résultat attendu dans le navigateur : "Core\Core [OK]".
+// puis on la lance : Core::run() confie la requête au routeur, qui appelle
+// le bon controller (ex. /user/add -> UserController::addAction()).
 $app = new Core\Core();
 $app->run();
