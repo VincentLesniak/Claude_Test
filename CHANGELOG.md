@@ -13,6 +13,50 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
+### Ajouté
+- README : section « Lancer le site (Windows + XAMPP) » (créer la base avec
+  le `mysql` de XAMPP, lancer le serveur intégré de PHP depuis le dossier
+  du projet, vérifier la configuration).
+- README : section « Lancer le site (Linux, Ubuntu / Debian) » (paquets à
+  installer, utilisateur MySQL dédié car `root` utilise auth_socket,
+  `config.local.json`, serveur intégré ou Apache).
+
+## [1.0.0] - 2026-11-23
+
+Partie « My cinema by PiePHP » du sujet : le sujet est complet, c'est la
+version du rendu.
+
+### Ajouté
+- Mini-site my_cinema : tables `genres`, `films` et `historiques`
+  (`database.sql`, avec quelques données d'exemple).
+- Models `FilmModel` (`'has one genre'`), `GenreModel` (`'has many films'`)
+  et `HistoriqueModel` (`'has one film'`), avec leurs règles de validation.
+  Supprimer un film efface aussi ses lignes d'historique.
+- `FilmController` : détail d'un film (avec son genre), ajout,
+  modification, suppression. `GenreController` : liste, ajout,
+  modification, suppression (refusée tant que le genre a des films).
+  `HistoriqueController` : ajouter / retirer un film vu.
+- `UserController` : modifier son profil (`/user/edit`, mot de passe
+  facultatif) et supprimer son compte (`/user/delete`, avec confirmation,
+  historique compris). Le profil affiche l'historique des films vus.
+- `Core\Controller` : `redirect()` (code 303, envoyé dans `__destruct()`),
+  messages `flash()`, `requireLogin()`, `currentUserId()`, `postValue()`
+  et `queryId()`. `render()` donne à toutes les vues `$flash` et
+  `$currentUserId`.
+- `Core\Entity::getConnection()` (protégée), pour qu'un model en utilise un
+  autre sur la même base.
+- Tests : `tests/CinemaModelTest.php`, `tests/CinemaControllerTest.php`,
+  nouvelles pages dans `tests/PagesTest.php`.
+
+### Modifié
+- `UserModel` déclare la relation `'has many historiques'`.
+- La page d'accueil affiche la liste des films (titre « my_cinema ») ; le
+  menu propose Films, Genres, puis Inscription / Connexion ou Profil /
+  Déconnexion selon la connexion, et affiche les messages flash.
+- `startSession()` et `databaseError()` passent de `UserController` à
+  `Core\Controller`. La base de test (`tests/TestDatabase.php`) contient
+  toutes les tables du mini-site.
+
 ## [0.7.0] - 2026-11-23
 
 Étape « Avancé - le moteur de templates » du sujet.

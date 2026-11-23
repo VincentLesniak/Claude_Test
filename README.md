@@ -30,6 +30,118 @@ dossier parent du projet : `php -S localhost:8000` puis
 http://localhost:8000/PiePHP/ (attention : le serveur intégré ignore le
 `.htaccess`).
 
+Mise à jour (partie « My cinema by PiePHP ») : lance plutôt le serveur
+intégré depuis le dossier DU PROJET, comme dans « Lancer le site » ci-dessous.
+Depuis le dossier parent, une adresse comme `/PiePHP/film/show` n'est pas
+renvoyée vers le `index.php` du projet (le serveur intégré cherche un
+`index.php` à la racine qu'on lui donne), et seule la page d'accueil marche.
+
+## Lancer le site (Windows + XAMPP)
+
+Ajout (partie « My cinema by PiePHP ») : la marche à suivre complète, de la
+base de données à la page d'accueil. Les commandes sont à taper dans **Git
+Bash**, depuis le dossier du projet (celui qui contient `index.php` et
+`database.sql`).
+
+1. **Démarrer MySQL** : ouvre le *XAMPP Control Panel* et clique sur
+   **Start** en face de **MySQL** (Apache n'est pas nécessaire avec la
+   méthode 3 ci-dessous).
+
+2. **Créer la base et les tables** (à faire une fois, puis à refaire si
+   `database.sql` change ; les tables existantes sont gardées) :
+   ```bash
+   /c/xampp/mysql/bin/mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS piephp CHARACTER SET utf8mb4"
+   /c/xampp/mysql/bin/mysql -u root -p piephp < database.sql
+   ```
+   - `mysql` n'est pas dans le PATH de Windows : on donne donc son chemin
+     complet (`/c/xampp/...` est la façon d'écrire `C:\xampp\...` dans
+     Git Bash). Sinon, Git Bash répond `mysql: command not found`.
+   - `-p` fait demander le mot de passe. Sous XAMPP, celui de `root` est
+     **vide** : appuie simplement sur Entrée. Rien ne s'affiche si tout
+     s'est bien passé.
+   - Sans terminal : http://localhost/phpmyadmin (Apache doit alors être
+     démarré), base `piephp`, onglet **Importer**, fichier `database.sql`.
+
+3. **Lancer le serveur** :
+   ```bash
+   /c/xampp/php/php -S localhost:8000
+   ```
+   puis ouvre **http://localhost:8000/** dans le navigateur. Le terminal
+   reste occupé tant que le serveur tourne ; **Ctrl+C** l'arrête.
+   Le serveur intégré de PHP ignore le `.htaccess`, mais envoie vers
+   `index.php` toute adresse qui ne correspond à aucun fichier : le
+   routage `/controller/action` fonctionne donc.
+
+4. **La connexion à la base** : `config.json` contient déjà les réglages
+   par défaut de XAMPP (`root`, mot de passe vide, base `piephp`). Si tu
+   as un `config.local.json`, c'est lui qui est lu à la place : vérifie
+   ses valeurs. Si la page affiche « La base de données est
+   indisponible », MySQL n'est pas démarré ou ces réglages sont faux.
+
+Pour l'utiliser avec Apache (http://localhost/PiePHP/), le projet doit être
+dans `C:\xampp\htdocs\PiePHP`, et le `RewriteBase` du `.htaccess` doit
+correspondre au nom de ce dossier.
+
+## Lancer le site (Linux, Ubuntu / Debian)
+
+Ajout (partie « My cinema by PiePHP ») : la même marche à suivre sous
+Linux. Les commandes sont à taper dans un terminal, depuis le dossier du
+projet.
+
+1. **Installer PHP et MySQL** (une seule fois) :
+   ```bash
+   sudo apt update
+   sudo apt install php php-mysql mysql-server
+   ```
+   `php-mysql` est l'extension `pdo_mysql`, qui permet à PHP (donc à
+   `Core\Database`) de parler à MySQL. Sous Debian, `mariadb-server`
+   remplace `mysql-server` : les commandes suivantes sont les mêmes.
+
+2. **Créer la base, un utilisateur et les tables** :
+   ```bash
+   sudo mysql -e "CREATE DATABASE IF NOT EXISTS piephp CHARACTER SET utf8mb4"
+   sudo mysql -e "CREATE USER IF NOT EXISTS 'piephp'@'localhost' IDENTIFIED BY 'choisis_un_mot_de_passe'"
+   sudo mysql -e "GRANT ALL PRIVILEGES ON piephp.* TO 'piephp'@'localhost'"
+   sudo mysql piephp < database.sql
+   ```
+   Pourquoi un utilisateur à part ? Sous Ubuntu, le compte `root` de MySQL
+   n'a pas de mot de passe : il se connecte grâce au compte `root` de
+   Linux (`sudo mysql`, méthode « auth_socket »). PHP, lui, n'est pas
+   `root` : avec `root` et un mot de passe vide, il obtiendrait « Access
+   denied ». On crée donc un utilisateur `piephp` qui n'a accès qu'à la
+   base `piephp` (c'est aussi plus sûr que de donner `root` au site).
+
+3. **Configurer la connexion** : copie le modèle et mets-y cet
+   utilisateur.
+   ```bash
+   cp exemple.config.local.json config.local.json
+   ```
+   Dans `config.local.json`, remplace `TON_UTILISATEUR_MYSQL` par `piephp`
+   et `TON_MOT_DE_PASSE_MYSQL` par le mot de passe choisi à l'étape 2.
+   Ce fichier est ignoré par Git : le mot de passe ne part pas sur GitHub.
+
+4. **Lancer le serveur** :
+   ```bash
+   php -S localhost:8000
+   ```
+   puis ouvre **http://localhost:8000/**. **Ctrl+C** arrête le serveur.
+
+Pour l'utiliser avec Apache (http://localhost/PiePHP/, comme dans le
+sujet) : `sudo apt install apache2 libapache2-mod-php`, place le projet
+dans `/var/www/html/PiePHP`, active la réécriture d'URL avec
+`sudo a2enmod rewrite`, autorise le `.htaccess` (`AllowOverride All` pour
+`/var/www/` dans `/etc/apache2/apache2.conf`), puis
+`sudo systemctl restart apache2`. Le `RewriteBase` du `.htaccess` doit
+correspondre au nom du dossier.
+
+## Essayer le site
+
+Parcours conseillé pour tout essayer : cliquer sur un film (détail avec son
+genre), s'inscrire puis se connecter, ajouter / modifier un film, cliquer
+sur « J'ai vu ce film », retrouver le film dans son profil puis l'en
+retirer, gérer les genres (la suppression d'un genre qui a des films est
+refusée), modifier son profil, puis supprimer son compte.
+
 ## Configuration (`config.json`)
 
 Les paramètres de connexion à la base de données sont dans `config.json`
@@ -168,6 +280,72 @@ tags courts par du PHP classique avant d'exécuter la vue :
 
 Exemple : `src/View/User/show.php`.
 
+## Le mini-site my_cinema
+
+Ajout (partie « My cinema by PiePHP ») : un site communautaire construit
+avec le framework, où les membres mettent à jour une banque de films et
+gardent l'historique des films qu'ils ont vus.
+
+### Installer la base
+
+`database.sql` crée maintenant aussi les tables `genres`, `films` et
+`historiques` (avec deux films et trois genres d'exemple). Sur une base qui
+contient déjà `users`, il suffit de le réimporter :
+`mysql -u root -p piephp < database.sql` (les tables existantes sont
+gardées grâce à `IF NOT EXISTS`).
+
+### Les entités et leurs relations
+
+| Model | Table | Relation (attribut privé `$relations`) | Colonnes |
+| --- | --- | --- | --- |
+| `UserModel` | `users` | `'has many historiques'` | `email`, `password` |
+| `FilmModel` | `films` | `'has one genre'` | `titre`, `annee`, `resume`, `genre_id` |
+| `GenreModel` | `genres` | `'has many films'` | `nom` |
+| `HistoriqueModel` | `historiques` | `'has one film'` | `user_id`, `film_id`, `vu_le` |
+
+Aucun de ces models n'écrit de SQL : le CRUD vient de `Core\Entity`, les
+jointures de `Core\ORM`. Chacun ne contient que ses règles (`validate()`)
+et sa liste blanche de colonnes.
+
+### Les pages
+
+| URL | Rôle | Qui |
+| --- | --- | --- |
+| `/` | la liste des films (titre, année, genre) | tout le monde |
+| `/film/show?id=3` | le détail d'un film, avec son genre | tout le monde |
+| `/film/add`, `/film/edit?id=3` | ajouter, modifier un film | membres |
+| `/film/delete?id=3` | supprimer un film (bouton, POST) | membres |
+| `/genre` | la liste des genres et leur nombre de films | tout le monde |
+| `/genre/add`, `/genre/edit?id=2`, `/genre/delete?id=2` | gérer les genres | membres |
+| `/historique/add?film_id=3` | « J'ai vu ce film » (bouton, POST) | membres |
+| `/historique/delete?id=7` | retirer un film de son historique (POST) | membres |
+| `/user/register`, `/user/login`, `/user/logout` | inscription, connexion, déconnexion | tout le monde |
+| `/user/show` | son profil et son historique | membres |
+| `/user/edit`, `/user/delete` | modifier, supprimer son profil | membres |
+
+Les URL utilisent le routage automatique `/controller/action` ; l'id passe
+dans l'URL (`?id=3`) et le controller ne lit que ce paramètre
+(`Controller::queryId()`), jamais toute l'URL.
+
+### Ce que le framework apporte en plus
+
+`Core\Controller` gagne quelques outils utilisés par tous les controllers :
+
+- `redirect('/chemin')` : après un formulaire, renvoie le navigateur vers
+  une autre page (code HTTP 303, principe « Post / Redirect / Get » : F5 ne
+  renvoie pas le formulaire). Comme `render()`, l'en-tête part à la fin,
+  dans `__destruct()`.
+- `flash('success', 'Film ajouté.')` : un message rangé en session et
+  affiché une seule fois par le layout, sur la page suivante.
+- `requireLogin()` : réserve une action aux membres connectés.
+- `postValue('titre')`, `queryId()` : lire un champ ou un id sans
+  mauvaise surprise (tableau à la place d'un texte, id non numérique).
+
+Règles de sécurité appliquées partout : toute action qui modifie la base
+est un formulaire POST (jamais un simple lien) ; l'id du membre vient de la
+session, jamais du formulaire ; on ne peut retirer que les lignes de SON
+historique ; un genre qui a encore des films ne peut pas être supprimé.
+
 ## Tests
 
 Depuis la racine du projet : `php tests/run.php`
@@ -215,6 +393,8 @@ version MINEURE à chaque étape du sujet terminée (0.1.0 = étapes 1 à 3,
 0.4.0 = ORM, 0.5.0 = entités, 0.6.0 = relations, 0.7.0 = moteur de templates...). La
 **1.0.0** correspondra au sujet complet,
 le jour du rendu.
+Mise à jour (version 1.0.0) : c'est fait, la 1.0.0 contient le mini-site
+my_cinema, dernière partie du sujet.
 
 ### Journal : `CHANGELOG.md`
 
