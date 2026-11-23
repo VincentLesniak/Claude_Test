@@ -136,6 +136,12 @@ class Controller
      * Pourquoi une méthode à part ? Un fichier inclus voit toutes les variables
      * de la fonction qui l'inclut. Ici la vue ne verra que $file, $scope et les
      * variables de $scope, pas les variables internes de render().
+     *
+     * Mise à jour (étape "Avancé - le moteur de templates") : on n'inclut
+     * plus directement le fichier de la vue, mais sa version COMPILÉE par
+     * Core\TemplateEngine. Les tags {{ }}, @if, @foreach... y sont déjà
+     * remplacés par du PHP classique. Une vue en PHP pur ressort inchangée du
+     * moteur : les anciennes vues fonctionnent toujours.
      */
     private function capture($file, $scope)
     {
@@ -146,8 +152,33 @@ class Controller
         extract($scope, EXTR_SKIP);
 
         ob_start();
-        include $file;
+        // compileView() renvoie le chemin du fichier compilé (dans le cache).
+        // On l'appelle directement dans include, sans variable intermédiaire :
+        // une variable de plus serait visible (et modifiable) dans la vue.
+        include $this->compileView($file);
         return ob_get_clean();
+    }
+
+    /**
+     * Ajout (étape "Avancé - le moteur de templates") : passe la vue dans
+     * Core\TemplateEngine et renvoie le chemin du fichier PHP compilé.
+     *
+     * Pourquoi une méthode ? Écrire "include (new TemplateEngine())->..."
+     * directement dans capture() est refusé par PSR-12 (l'outil prend
+     * include pour une fonction suivie d'un espace interdit). Et c'est plus
+     * lisible : capture() dit "j'inclus la vue compilée", le détail est ici.
+     *
+     * Pertinence : si un jour on veut régler le moteur (autre dossier de
+     * cache, désactiver le cache en développement...), c'est le seul endroit
+     * à modifier.
+     *
+     * @param string $file chemin de la vue d'origine
+     *
+     * @return string chemin de la vue compilée, à inclure
+     */
+    private function compileView($file)
+    {
+        return (new TemplateEngine())->compileFile($file);
     }
 
     /**
