@@ -18,4 +18,4 @@ use Core\Router;
 Router::connect('/', ['controller' => 'app', 'action' => 'index']);
 
 // Exemple de route "jolie" : l'URL ne ressemble pas au nom du controller.
-Router::connect('/inscription', ['controller' => 'user', 'action' => 'add']);
+Router::connect('/inscription', ['controller' => 'user', 'action' => 'register']);

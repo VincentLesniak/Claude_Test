@@ -13,9 +13,23 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
-Étapes 4 et 5 du sujet : front controller et routeur.
+## [0.2.0] - 2026-11-23
+
+Étapes 4 et 5 du sujet (front controller et routeur), puis étape « Le
+Controller » (méthode `render()` et vues).
 
 ### Ajouté
+- Méthode `Core\Controller::render($view, $scope)` : insère la vue
+  `src/View/<Controller>/<vue>.php` dans le layout `src/View/index.php`
+  (avec `ob_start()`), et affiche la page à la destruction du controller
+  (`__destruct()`). Une vue introuvable lève une exception explicite.
+- Layout commun `src/View/index.php` (titre de page, menu de navigation).
+- Vues `src/View/App/index.php`, `src/View/User/index.php`,
+  `src/View/User/register.php` et `src/View/User/show.php`.
+- Actions `UserController::registerAction()`, `loginAction()` et
+  `showAction()`.
+- Tests de `render()` (`tests/ControllerTest.php`) et des pages rendues
+  dans le layout.
 - `.htaccess` actif : toutes les requêtes passent par `index.php`, sauf les
   fichiers de `webroot/` et `robots.txt`.
 - Classe `Core\Router` (`connect()`, `get()`) et fichier `src/routes.php`
@@ -29,6 +43,13 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 - Tests du routeur (`tests/RouterTest.php`, `tests/CoreTest.php`).
 
 ### Modifié
+- Les actions des controllers affichent leur vue avec `render()` au lieu
+  d'un simple `echo`. `/user/add` affiche le formulaire d'inscription.
+- La route `/inscription` pointe vers `UserController::registerAction()`.
+- `src/View/User/login.php` ne contient plus qu'un morceau de page (le
+  layout ajoute `<html>`, `<head>`...) et s'affiche via `/user/login` ; son
+  formulaire envoie vers `/user/login` en utilisant `BASE_URI`.
+- `tests/run.php` définit `BASE_URI`, utilisée par les vues.
 - Les classes de `src/` ont un namespace (`Controller\`, `Model\`), exigé
   par PSR-12.
 - La page d'accueil affiche `AppController::indexAction` au lieu de
@@ -56,5 +77,6 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 - Versionnage : fichier `VERSION`, ce journal, workflow de release
   automatique sur les tags `vX.Y.Z`.
 
-[Non publié]: https://github.com/VincentLesniak/Claude_Test/compare/0.1.0...dev
+[Non publié]: https://github.com/VincentLesniak/Claude_Test/compare/0.2.0...dev
+[0.2.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.2.0
 [0.1.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.1.0

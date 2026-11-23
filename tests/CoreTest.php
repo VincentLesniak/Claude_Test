@@ -26,28 +26,34 @@ $run = function (string $uri, array $get = []): string {
 
 return [
     '"/" appelle AppController::indexAction()' => function () use ($run): void {
-        Assert::contains('Controller\AppController::indexAction [OK]', $run('/'));
+        Assert::contains('<h1>Bienvenue sur PiePHP</h1>', $run('/'));
     },
 
     '"/user/add" appelle UserController::addAction()' => function () use ($run): void {
-        Assert::contains('Controller\UserController::addAction [OK]', $run('/user/add'));
+        Assert::contains('<h1>Inscription</h1>', $run('/user/add'));
     },
 
     '"/user" utilise l\'action par défaut index' => function () use ($run): void {
-        Assert::contains('Controller\UserController::indexAction [OK]', $run('/user'));
+        Assert::contains('<h1>Utilisateurs</h1>', $run('/user'));
     },
 
     'les "/" en trop et les ?paramètres sont ignorés' => function () use ($run): void {
-        Assert::contains('Controller\UserController::addAction [OK]', $run('/user/add/?x=1'));
+        Assert::contains('<h1>Inscription</h1>', $run('/user/add/?x=1'));
     },
 
     '"?c=user&a=add" fonctionne aussi' => function () use ($run): void {
         $output = $run('/', ['c' => 'user', 'a' => 'add']);
-        Assert::contains('Controller\UserController::addAction [OK]', $output);
+        Assert::contains('<h1>Inscription</h1>', $output);
     },
 
-    'une route déclarée dans src/routes.php est prioritaire' => function () use ($run): void {
-        Assert::contains('Controller\UserController::addAction [OK]', $run('/inscription'));
+    'une route déclarée dans src/routes.php est prioritaire (/inscription)' => function () use ($run): void {
+        Assert::contains('<h1>Inscription</h1>', $run('/inscription'));
+    },
+
+    '"/user/login" affiche la vue login dans le layout' => function () use ($run): void {
+        $html = $run('/user/login');
+        Assert::contains('<!doctype html>', $html, 'le layout est absent');
+        Assert::contains('<h1>Connexion</h1>', $html, 'la vue est absente');
     },
 
     'un controller inconnu affiche la 404' => function () use ($run): void {

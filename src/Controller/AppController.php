@@ -15,8 +15,15 @@ use Core\Controller;
  */
 class AppController extends Controller
 {
+    /**
+     * Page d'accueil : affiche src/View/App/index.php dans le layout.
+     */
     public function indexAction()
     {
-        echo __CLASS__ . '::' . __FUNCTION__ . ' [OK]' . PHP_EOL;
+        // render() est héritée de Core\Controller. Le dossier "App" est
+        // déduit du nom de la classe (AppController -> src/View/App/).
+        // La clé 'title' devient la variable $title, utilisée par le layout
+        // pour la balise <title>.
+        $this->render('index', ['title' => 'Accueil']);
     }
 }

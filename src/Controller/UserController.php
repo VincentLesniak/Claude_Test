@@ -17,16 +17,61 @@ use Core\Controller;
  * Le suffixe "Action" distingue les méthodes appelables depuis une URL des
  * autres méthodes de la classe : une méthode helper() ne sera jamais
  * accessible par /user/helper, car le Core cherche "helperAction".
+ *
+ * Chaque action se contente pour l'instant d'afficher sa vue de
+ * src/View/User/ avec render(). Le traitement des formulaires (enregistrer
+ * un utilisateur, vérifier un mot de passe) viendra à l'étape "Mise en
+ * pratique", avec le model.
  */
 class UserController extends Controller
 {
+    /**
+     * /user : page d'accueil de l'espace utilisateur.
+     */
     public function indexAction()
     {
-        echo __CLASS__ . '::' . __FUNCTION__ . ' [OK]' . PHP_EOL;
+        $this->render('index', ['title' => 'Utilisateurs']);
     }
 
+    /**
+     * /user/add : l'URL d'exemple du sujet pour le routage. "Ajouter un
+     * utilisateur", c'est l'inscrire : on affiche le même formulaire que
+     * registerAction(). Une même vue peut servir à plusieurs actions.
+     */
     public function addAction()
     {
-        echo __CLASS__ . '::' . __FUNCTION__ . ' [OK]' . PHP_EOL;
+        $this->render('register', ['title' => 'Inscription']);
+    }
+
+    /**
+     * /user/register (ou /inscription, voir src/routes.php) : formulaire
+     * d'inscription.
+     */
+    public function registerAction()
+    {
+        $this->render('register', ['title' => 'Inscription']);
+    }
+
+    /**
+     * /user/login : formulaire de connexion.
+     */
+    public function loginAction()
+    {
+        $this->render('login', ['title' => 'Connexion']);
+    }
+
+    /**
+     * /user/show : le profil d'un utilisateur.
+     *
+     * Exemple de passage de données à une vue : le tableau 'user' devient la
+     * variable $user dans src/View/User/show.php. Comme on ne lit pas encore
+     * la base de données, ce sont des données d'exemple écrites en dur ; plus
+     * tard, elles viendront de UserModel.
+     */
+    public function showAction()
+    {
+        $user = ['id' => 1, 'email' => 'exemple@piephp.fr'];
+
+        $this->render('show', ['title' => 'Profil', 'user' => $user]);
     }
 }
