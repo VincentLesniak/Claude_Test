@@ -38,19 +38,26 @@ n'accepte pas les commentaires, d'où cette explication ici :
 `host`/`port` désignent le serveur MySQL, `dbname` la base, `user` et
 `password` le compte utilisé. Adapte ces valeurs à ta machine.
 
+## Tests
+
+Depuis la racine du projet : `php tests/run.php`
+
+Le lanceur exécute automatiquement chaque fichier `tests/*Test.php`. Pour
+tester une nouvelle fonctionnalité, crée un fichier `tests/XxxTest.php` qui
+renvoie un tableau `"description du test" => function () { ... }` (voir les
+fichiers existants), il sera pris en compte sans rien modifier d'autre.
+
 ## Intégration continue (`.github/workflows/piephp-strict-ci.yml`)
 
-À chaque push et pull request, GitHub Actions lance quatre jobs :
+À chaque push et pull request, GitHub Actions lance quatre jobs sur des
+machines fournies par GitHub (`ubuntu-latest`, gratuit pour un dépôt public,
+2000 minutes par mois en privé) :
 
-- **Security Check** : récupère le code (aucune vérification pour l'instant).
-- **File Structure Verification** : vérifie que tous les fichiers attendus
-  par le sujet existent. Il restera rouge tant que le projet n'est pas
-  terminé (Router, ORM, vues...).
+- **File Structure Verification** : les fichiers requis par le sujet sont
+  présents. La liste suit l'avancement : les fichiers des étapes suivantes
+  sont en commentaire dans le workflow, à décommenter quand ils sont codés.
 - **PHP Linting** : `php -l` sur chaque fichier PHP (erreurs de syntaxe).
-- **PSR-12 Validation** : vérifie le style de code avec PHP_CodeSniffer
-  (les vues de `src/View/` sont ignorées). Pour le lancer en local :
-  `php phpcs.phar --standard=PSR12 --ignore=src/View/,webroot/ Core/ src/ index.php`
-
-Les jobs tournent sur `ubuntu-latest`, une machine virtuelle fournie par
-GitHub. C'est gratuit pour un dépôt public, et un dépôt privé dispose de
-2000 minutes gratuites par mois (largement suffisant ici).
+- **PSR-12 Validation** : style de code vérifié par PHP_CodeSniffer sur
+  `Core/`, `src/`, `tests/` et `index.php` (les vues de `src/View/` sont
+  ignorées). En local : `phpcs --standard=PSR12 --ignore=src/View/,webroot/ Core/ src/ tests/ index.php`
+- **Tests** : `php tests/run.php`.
