@@ -13,6 +13,27 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
+## [0.4.0] - 2026-11-23
+
+Étape « Avancé - l'ORM » du sujet.
+
+### Ajouté
+- Classe `Core\ORM` : un mini-ORM qui écrit le SQL à la place des models,
+  avec les méthodes du sujet `create()` (renvoie l'id), `read()` (la ligne,
+  ou `null`), `update()` et `delete()` (renvoient un booléen) et `find()`
+  (paramètres `WHERE`, `ORDER BY` et `LIMIT`, valeurs par défaut du sujet).
+  Valeurs toujours préparées ; noms de table et de colonne, `ORDER BY` et
+  `LIMIT` vérifiés pour bloquer l'injection SQL. `WHERE` accepte un tableau
+  `colonne => valeur` (préparé, recommandé) ou une chaîne SQL comme dans le
+  sujet.
+- Tests de l'ORM (`tests/ORMTest.php`) sur une table `articles`.
+
+### Modifié
+- `Model\UserModel` n'écrit plus de SQL : son CRUD, `readAll()` et
+  `readByEmail()` passent par `Core\ORM`. Le comportement ne change pas
+  (liste blanche des colonnes et hachage des mots de passe gardés).
+- Job « File Structure Verification » de la CI : `Core/ORM.php` est requis.
+
 ## [0.3.0] - 2026-11-23
 
 Étapes « Mise en pratique », « Le Model » et « Request » du sujet.
@@ -115,7 +136,8 @@ Controller » (méthode `render()` et vues).
 - Versionnage : fichier `VERSION`, ce journal, workflow de release
   automatique sur les tags `vX.Y.Z`.
 
-[Non publié]: https://github.com/VincentLesniak/Claude_Test/compare/0.3.0...dev
+[Non publié]: https://github.com/VincentLesniak/Claude_Test/compare/0.4.0...dev
+[0.4.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.4.0
 [0.3.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.3.0
 [0.2.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.2.0
 [0.1.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.1.0
