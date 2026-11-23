@@ -212,7 +212,7 @@ MAJEUR.MINEUR.CORRECTIF :
 Tant qu'on est en `0.x`, le framework est "en construction" : on monte la
 version MINEURE à chaque étape du sujet terminée (0.1.0 = étapes 1 à 3,
 0.2.0 = sécurité, routeur et controller, 0.3.0 = model et request,
-0.4.0 = ORM, 0.5.0 = entités, 0.6.0 = relations...). La
+0.4.0 = ORM, 0.5.0 = entités, 0.6.0 = relations, 0.7.0 = moteur de templates...). La
 **1.0.0** correspondra au sujet complet,
 le jour du rendu.
 
