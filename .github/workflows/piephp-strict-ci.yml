@@ -70,9 +70,10 @@ jobs:
             "Core/Request.php"
             "Core/Database.php"
             "exemple.config.local.json"
+            # Étape "Avancé - l'ORM"
+            "Core/ORM.php"
 
             # Étapes suivantes (à décommenter quand elles sont codées) :
-            # "Core/ORM.php"
             # "Core/Entity.php"
             # "Core/TemplateEngine.php"
             # "src/View/Flash/default.php"
