@@ -13,6 +13,29 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
+Étape « Avancé - Les relations de model » du sujet.
+
+### Ajouté
+- Relations entre models : chaque model peut déclarer un attribut privé
+  statique `$relations` avec les phrases du sujet (`'has many comments'`,
+  `'has one article'`). `'has many'` des deux côtés (`ArticleModel` :
+  `'has many tags'`, `TagModel` : `'has many articles'`) donne une relation
+  many to many, rangée dans la table pivot `articles_tags`.
+- `Entity::getRelations()` traduit ces phrases pour l'ORM (type, table,
+  table pivot). Une phrase incomprise lève une `InvalidArgumentException`.
+- `ORM::read()` et `ORM::find()` prennent un 3e paramètre facultatif
+  `$relations` : chaque ligne reçoit une entrée par relation (une liste pour
+  `has many` et `many to many`, une ligne ou `null` pour `has one`), lue avec
+  un `INNER JOIN`. Noms de tables vérifiés comme le reste de l'ORM.
+- `ORM::singular()` (`articles` -> `article`), pour les clés étrangères.
+- Tests des relations (`tests/RelationTest.php`) avec trois models de test
+  (`tests/Model/`).
+
+### Modifié
+- `Entity::read()`, `find()`, `readAll()` et le constructeur avec un id
+  renvoient aussi les enregistrements liés (`$article->comments`). `save()`
+  n'envoie jamais les relations en base.
+
 ## [0.5.0] - 2026-11-23
 
 Étape « Les entités » du sujet.
