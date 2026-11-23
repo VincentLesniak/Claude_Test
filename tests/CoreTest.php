@@ -61,5 +61,6 @@ return [
     'un nom avec des caractères spéciaux est refusé (404)' => function () use ($run): void {
         Assert::contains('<h1>404</h1>', $run('/..%2F..%2Fetc/passwd'));
         Assert::contains('<h1>404</h1>', $run('/', ['c' => '../Core/Core']));
+        Assert::contains('<h1>404</h1>', $run('/', ['c' => ['tableau']]));
     },
 ];

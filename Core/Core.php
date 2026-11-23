@@ -12,15 +12,23 @@ namespace Core;
  *   3. sinon, routage automatique : /controller/action (ou ?c=...&a=...)
  *   4. on vérifie que le controller et l'action existent, sinon 404
  *   5. on instancie le controller et on appelle l'action
+ *
+ * Exemple complet : http://localhost/PiePHP/user/add
+ *   -> URL "/user/add" -> aucune route déclarée -> controller "user", action "add"
+ *   -> new \Controller\UserController() puis ->addAction()
  */
 class Core
 {
     public function run()
     {
+        // 1) L'URL demandée, ex. "/user/add".
         $url = $this->getUrl();
 
         // 2) Routes déclarées à la main dans src/routes.php.
+        // require_once : le fichier n'est chargé qu'une fois, même si run()
+        // est appelée plusieurs fois (c'est le cas dans les tests).
         require_once implode(DIRECTORY_SEPARATOR, [dirname(__DIR__), 'src', 'routes.php']);
+
         // Exception : si l'URL contient ?c=... ou ?a=..., le visiteur demande
         // explicitement un controller ; sinon "/?c=user&a=add" tomberait sur
         // la route "/" de la page d'accueil.
@@ -38,7 +46,9 @@ class Core
         // visiteur. On n'accepte que des lettres et des chiffres, sinon une URL
         // comme "/../../secret" pourrait faire inclure n'importe quel fichier
         // par l'autoloader.
-        if (!ctype_alnum($route['controller']) || !ctype_alnum($route['action'])) {
+        // is_string() : avec "?c[]=x", PHP fabrique un tableau au lieu d'une
+        // chaîne, et ctype_alnum() planterait.
+        if (!$this->isValidName($route['controller']) || !$this->isValidName($route['action'])) {
             $this->notFound();
             return;
         }
@@ -61,6 +71,15 @@ class Core
         // new $controllerName() équivaut ici à new \Controller\UserController().
         $controller = new $controllerName();
         $controller->$actionName();
+    }
+
+    /**
+     * Un nom de controller ou d'action valide : une chaîne non vide faite
+     * uniquement de lettres et de chiffres (ctype_alnum).
+     */
+    private function isValidName($name)
+    {
+        return is_string($name) && ctype_alnum($name);
     }
 
     /**
@@ -112,9 +131,11 @@ class Core
      */
     private function autoRoute($url)
     {
-        // explode découpe "user/add" en ['user', 'add'] ;
-        // array_filter retire les morceaux vides (dus aux "/" en trop).
-        $parts = array_values(array_filter(explode('/', trim($url, '/'))));
+        // explode découpe "user/add" en ['user', 'add'].
+        // array_filter retire les morceaux vides (dus à un "//" dans l'URL) ;
+        // le callback 'strlen' évite de retirer aussi "0", que PHP considère
+        // comme faux. array_values renumérote ensuite les cases à partir de 0.
+        $parts = array_values(array_filter(explode('/', trim($url, '/')), 'strlen'));
 
         // Ordre de priorité : URL "propre", puis paramètre GET, puis défaut.
         $controller = $parts[0] ?? $_GET['c'] ?? 'app';

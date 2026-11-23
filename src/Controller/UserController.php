@@ -1,9 +1,12 @@
 <?php
 
-// Namespace "Controller" : rangée dans src/Controller/. PSR-12 impose un
-// namespace pour chaque classe ; l'autoloader la retrouve grâce au nom court.
+// Namespace "Controller" : la classe est rangée dans src/Controller/.
+// PSR-12 impose un namespace pour chaque classe ; l'autoloader la retrouve
+// grâce à son nom court (UserController.php dans src/Controller/).
 namespace Controller;
 
+// "use" importe la classe mère Core\Controller : dans ce fichier, le mot
+// "Controller" seul désigne donc Core\Controller (et pas le namespace).
 use Core\Controller;
 
 /**

@@ -13,7 +13,28 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
+Étapes 4 et 5 du sujet : front controller et routeur.
+
+### Ajouté
+- `.htaccess` actif : toutes les requêtes passent par `index.php`, sauf les
+  fichiers de `webroot/` et `robots.txt`.
+- Classe `Core\Router` (`connect()`, `get()`) et fichier `src/routes.php`
+  pour déclarer des routes à la main.
+- Routage automatique `/controller/action` (ou `?c=...&a=...`) dans
+  `Core\Core::run()`, avec `app` / `index` par défaut.
+- Page 404 (`src/View/Error/404.php`) avec le code HTTP 404 quand le
+  controller ou l'action n'existe pas.
+- Classe mère `Core\Controller`, controllers `AppController` et
+  `UserController`, model `UserModel` et table `users` (`database.sql`).
+- Tests du routeur (`tests/RouterTest.php`, `tests/CoreTest.php`).
+
 ### Modifié
+- Les classes de `src/` ont un namespace (`Controller\`, `Model\`), exigé
+  par PSR-12.
+- La page d'accueil affiche `AppController::indexAction` au lieu de
+  `Core\Core [OK]`.
+- La page `src/View/User/login.php` n'est plus accessible directement
+  (bloquée par le `.htaccess`, comme le demande le sujet).
 - Le workflow de release accepte les tags `X.Y.Z` comme `vX.Y.Z`, complète
   une release déjà créée depuis l'interface GitHub et peut être lancé à la
   main pour un tag existant.

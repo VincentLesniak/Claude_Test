@@ -1,5 +1,6 @@
 <?php
 
+// Namespace "Model" : la classe est rangée dans src/Model/ (exigé par PSR-12).
 namespace Model;
 
 /**
