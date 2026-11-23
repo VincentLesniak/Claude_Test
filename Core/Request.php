@@ -111,6 +111,12 @@ class Request
      *
      * array_merge() : si un même nom existe dans l'URL ET dans le formulaire,
      * la valeur du formulaire (le 2e tableau) gagne.
+     *
+     * Mise à jour (étape « Les entités ») : attention en donnant TOUT ce
+     * tableau à une entité. Si un visiteur ajoute ?id=3 à l'URL, l'entité
+     * charge la ligne n°3 (voir Core\Entity::__construct()) et un save()
+     * la modifierait. UserController donne donc à UserModel seulement les
+     * champs attendus (email, password).
      */
     public function getQueryParams(): array
     {

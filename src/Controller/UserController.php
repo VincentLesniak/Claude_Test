@@ -65,6 +65,16 @@ class UserController extends Controller
      * Avant d'enregistrer, on vérifie les champs : le "required" et le
      * type="email" du HTML se contournent facilement, seule la vérification
      * côté serveur (ici, en PHP) compte vraiment.
+     *
+     * Mise à jour (étape « Les entités ») : l'utilisateur est créé comme une
+     * entité, d'après l'usage donné par le sujet :
+     *   $user = new UserModel($params);
+     *   if (!$user->id) { $user->save(); }
+     * On donne au constructeur les deux champs déjà nettoyés et vérifiés,
+     * plutôt que tout getQueryParams() : on sait ainsi exactement ce qui
+     * entre dans l'objet (un champ "id" glissé dans le formulaire ne
+     * pourra pas faire charger, puis modifier, le compte de quelqu'un
+     * d'autre). Pas d'id dans le tableau = nouvel utilisateur.
      */
     public function registerAction()
     {
@@ -79,13 +89,18 @@ class UserController extends Controller
 
             if ($scope['error'] === null) {
                 try {
-                    $user = new UserModel();
+                    $user = new UserModel(['email' => $email, 'password' => $password]);
                     // L'email est UNIQUE dans la table : on vérifie avant,
                     // pour afficher un message clair au lieu d'une erreur SQL.
                     if ($user->readByEmail($email) !== null) {
                         $scope['error'] = 'Un compte existe déjà avec cet email.';
                     } else {
-                        $user->setEmail($email)->setPassword($password)->save();
+                        // Mise à jour (étape « Les entités ») : les attributs
+                        // ont été donnés au constructeur, save() les enregistre
+                        // et remplit $user->id. Le "if (!$user->id)" du sujet
+                        // est inutile ici : sans id dans le tableau, l'entité
+                        // est forcément nouvelle.
+                        $user->save();
                         $scope['success'] = 'Votre compte a été créé. Vous pouvez vous connecter.';
                         unset($scope['email']);
                     }
@@ -109,6 +124,9 @@ class UserController extends Controller
      * tout d'une requête à l'autre. session_start() donne au navigateur un
      * cookie avec un identifiant unique (PHPSESSID) ; à chaque page suivante,
      * PHP retrouve grâce à lui le tableau $_SESSION de ce visiteur.
+     *
+     * Mise à jour (étape « Les entités ») : l'email et le mot de passe tapés
+     * sont donnés au constructeur du model, au lieu de deux setters.
      */
     public function loginAction()
     {
@@ -119,10 +137,10 @@ class UserController extends Controller
             $scope['email'] = $email;
 
             try {
-                $user = (new UserModel())
-                    ->setEmail($email)
-                    ->setPassword($this->request->getPost('password', ''))
-                    ->checkCredentials();
+                $user = (new UserModel([
+                    'email' => $email,
+                    'password' => $this->request->getPost('password', ''),
+                ]))->checkCredentials();
 
                 if ($user === null) {
                     // Même message que l'email soit inconnu ou le mot de passe

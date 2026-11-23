@@ -72,9 +72,10 @@ jobs:
             "exemple.config.local.json"
             # Étape "Avancé - l'ORM"
             "Core/ORM.php"
+            # Étape "Les entités"
+            "Core/Entity.php"
 
             # Étapes suivantes (à décommenter quand elles sont codées) :
-            # "Core/Entity.php"
             # "Core/TemplateEngine.php"
             # "src/View/Flash/default.php"
             # "src/View/Flash/error.php"

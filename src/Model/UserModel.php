@@ -3,10 +3,8 @@
 // Namespace "Model" : la classe est rangée dans src/Model/ (exigé par PSR-12).
 namespace Model;
 
-use Core\Database;
-use Core\ORM;
+use Core\Entity;
 use InvalidArgumentException;
-use PDO;
 
 /**
  * Model de l'entité "user" : c'est lui qui parlera à la table users en base.
@@ -43,13 +41,33 @@ use PDO;
  * règles de sécurité ci-dessus restent vraies : les requêtes préparées sont
  * maintenant faites par l'ORM, et le hachage reste ici (c'est une règle
  * propre aux utilisateurs, l'ORM n'a pas à la connaître).
+ *
+ * Mise à jour (étape « Les entités ») : UserModel hérite de Core\Entity
+ * ("extends Entity"). Le CRUD qu'il écrivait lui-même (create, read,
+ * update, delete, readAll : appeler l'ORM avec la table 'users') est
+ * maintenant écrit une seule fois dans Entity, pour tous les models ; ses
+ * explications y ont déménagé. Les exemples restent vrais :
+ *   create(['email' => 'a@b.c', 'password' => 'secret']) exécute
+ *     INSERT INTO users (email, password) VALUES (:email, :password)
+ *   update(3, ['email' => 'new@b.c']) exécute
+ *     UPDATE users SET email = :email WHERE id = :id
+ * Le nom de la table est deviné par Entity::getTable() : UserModel -> users.
+ *
+ * Ce qui reste ici, c'est ce qui est PROPRE aux utilisateurs : la liste
+ * blanche des colonnes, le hachage des mots de passe (prepareFields()),
+ * la recherche par email et la vérification à la connexion.
+ *
+ * On l'utilise maintenant comme une entité :
+ *   $user = new UserModel(['email' => 'a@b.c', 'password' => 'secret']);
+ *   $user->save();                      // $user->id contient le nouvel id
+ *   $user = new UserModel(['id' => 3]); // l'utilisateur n°3, lu en base
  */
-class UserModel
+class UserModel extends Entity
 {
-    /**
-     * Le nom de la table gérée par ce model.
-     */
-    private const TABLE = 'users';
+    // Le nom de la table gérée par ce model était rangé ici, dans une
+    // constante TABLE = 'users'.
+    // Mise à jour (étape « Les entités ») : Entity::getTable() le déduit du
+    // nom de la classe (UserModel -> users), la constante est donc inutile.
 
     /**
      * Les colonnes que create() et update() ont le droit de remplir.
@@ -61,53 +79,61 @@ class UserModel
      */
     private const COLUMNS = ['email', 'password'];
 
-    /**
-     * La connexion à la base de données.
-     *
-     * @var PDO
-     */
-    private $db;
-
-    /**
-     * Ajout (étape ORM) : le mini-ORM qui écrit les requêtes SQL pour ce
-     * model, branché sur la même connexion que $db.
-     *
-     * @var ORM
-     */
-    private $orm;
+    // La connexion à la base ($db) et le mini-ORM branché dessus ($orm,
+    // ajouté à l'étape ORM) étaient deux attributs privés de ce model.
+    // Mise à jour (étape « Les entités ») : ils sont dans Entity, qui les
+    // initialise dans son constructeur, comme le demandait le sujet.
 
     /**
      * L'email de l'utilisateur (sujet : attribut privé).
      *
+     * Mise à jour (étape « Les entités ») : l'attribut devient PUBLIC, comme
+     * le demande le sujet pour les attributs d'une entité ($user->email).
+     * On le déclare quand même ici (Entity pourrait le créer seul) pour
+     * qu'on voie d'un coup d'œil les colonnes d'un utilisateur.
+     *
+     * Pourquoi pas private ? Un attribut privé n'est visible QUE dans la
+     * classe qui le déclare, même pas dans sa classe mère. Or c'est Entity
+     * qui remplit cet attribut (constructeur) et le relit (save()) : avec
+     * private, elle ne le verrait pas. Et le controller doit pouvoir lire
+     * $user->id ou $user->email, ce que seul public permet.
+     * Le prix : n'importe qui peut écrire $user->email = 'pas un email'.
+     * Les vraies vérifications restent donc avant l'écriture en base :
+     * validate() dans le controller, prepareFields() ici.
+     *
      * @var string
      */
-    private $email = '';
+    public $email = '';
 
     /**
      * Le mot de passe EN CLAIR, tel que tapé dans le formulaire. Il n'est
      * jamais enregistré tel quel : save() le hache avant de l'écrire.
      *
+     * Mise à jour (étape « Les entités ») : public lui aussi. Attention :
+     * pour un utilisateur lu en base (new UserModel(['id' => 3])), il
+     * contient l'EMPREINTE, pas le mot de passe en clair. save() ne la
+     * renvoie pas tant qu'on n'y touche pas (voir Entity::save()), elle
+     * n'est donc jamais hachée deux fois. Ne l'envoie jamais à une vue.
+     *
      * @var string
      */
-    private $password = '';
+    public $password = '';
 
-    /**
-     * Le sujet demande d'initialiser la connexion dans le constructeur.
-     *
-     * Par défaut, on prend la connexion partagée de Core\Database (lue dans
-     * config.json). On peut aussi en donner une autre : les tests passent
-     * une base SQLite en mémoire.
-     */
-    public function __construct(?PDO $db = null)
-    {
-        $this->db = $db ?? Database::getConnection();
-        $this->orm = new ORM($this->db);
-    }
+    // Le constructeur initialisait la connexion (demande du sujet), avec la
+    // connexion partagée de Core\Database par défaut, ou une autre donnée
+    // par les tests (SQLite en mémoire).
+    // Mise à jour (étape « Les entités ») : c'est le constructeur d'Entity
+    // qui le fait, avec un 1er paramètre en plus, le tableau d'attributs :
+    //   new UserModel(['email' => 'a@b.c'], $pdo)
 
     /**
      * Les "setters" modifient les attributs privés depuis l'extérieur. Comme
      * ils renvoient $this, on peut les enchaîner :
      *   $user->setEmail('a@b.c')->setPassword('secret')->save();
+     *
+     * Mise à jour (étape « Les entités ») : les attributs sont publics, on
+     * peut aussi écrire $user->email = 'a@b.c'. Les setters restent utiles
+     * pour enchaîner les appels, et parce qu'ils vérifient le type (string).
      */
     public function setEmail(string $email): self
     {
@@ -126,17 +152,13 @@ class UserModel
         return $this->email;
     }
 
-    /**
-     * Enregistre en base un nouvel utilisateur avec les attributs du model
-     * (sujet, partie "Mise en pratique"). Le mot de passe est haché par
-     * create().
-     *
-     * @return int l'id du nouvel utilisateur
-     */
-    public function save(): int
-    {
-        return $this->create(['email' => $this->email, 'password' => $this->password]);
-    }
+    // save() enregistrait en base un nouvel utilisateur avec les attributs
+    // du model (sujet, partie "Mise en pratique"), le mot de passe étant
+    // haché par create().
+    // Mise à jour (étape « Les entités ») : save() est hérité d'Entity. Il
+    // prend les colonnes de columns() (email, password), fait un INSERT si
+    // l'utilisateur n'a pas d'id, un UPDATE sinon, et le hachage se fait
+    // toujours au passage, dans prepareFields().
 
     /**
      * Connexion : renvoie l'utilisateur dont l'email et le mot de passe
@@ -162,80 +184,19 @@ class UserModel
         return $user;
     }
 
-    /**
-     * Crée une nouvelle ligne avec les champs donnés et renvoie son id.
-     *
-     * Exemple : create(['email' => 'a@b.c', 'password' => 'secret']) exécute
-     *   INSERT INTO users (email, password) VALUES (:email, :password)
-     * avec les valeurs ['email' => 'a@b.c', 'password' => '$2y$10$...'].
-     *
-     * Mise à jour (étape ORM) : cette requête est maintenant écrite par
-     * ORM::create(). Les marqueurs (:email), prepare()/execute() et
-     * lastInsertId() y ont déménagé, avec leurs explications.
-     *
-     * @param array $fields colonne => valeur
-     * @return int l'id attribué par la base (AUTO_INCREMENT)
-     */
-    public function create(array $fields): int
-    {
-        return $this->orm->create(self::TABLE, $this->prepareFields($fields));
-    }
-
-    /**
-     * Lit une ligne d'après son id.
-     *
-     * @return array|null la ligne (colonne => valeur), ou null si l'id n'existe pas
-     */
-    public function read(int $id): ?array
-    {
-        // Mise à jour (étape ORM) : ORM::read() exécute le SELECT et
-        // transforme déjà le false de fetch() (aucune ligne) en null.
-        return $this->orm->read(self::TABLE, $id);
-    }
-
-    /**
-     * Met à jour les champs donnés de la ligne $id.
-     *
-     * Exemple : update(3, ['email' => 'new@b.c']) exécute
-     *   UPDATE users SET email = :email WHERE id = :id
-     *
-     * Mise à jour (étape ORM) : requête écrite par ORM::update(), qui
-     * renvoie true si rowCount() (le nombre de lignes touchées) est > 0.
-     *
-     * @return bool true si une ligne a été modifiée
-     */
-    public function update(int $id, array $fields): bool
-    {
-        return $this->orm->update(self::TABLE, $id, $this->prepareFields($fields));
-    }
-
-    /**
-     * Supprime la ligne $id.
-     *
-     * @return bool true si une ligne a été supprimée
-     */
-    public function delete(int $id): bool
-    {
-        // Mise à jour (étape ORM) : le DELETE est écrit par ORM::delete().
-        return $this->orm->delete(self::TABLE, $id);
-    }
-
-    /**
-     * Lit toutes les lignes de la table, de la plus ancienne à la plus récente.
-     *
-     * Le sujet l'appelle read_all, mais PSR-1 (inclus dans PSR-12) impose
-     * des noms de méthodes en "camelCase" : readAll.
-     *
-     * @return array la liste des utilisateurs (un tableau par ligne)
-     */
-    public function readAll(): array
-    {
-        // query() suffit ici : la requête ne contient aucune valeur venant
-        // du visiteur, il n'y a rien à préparer.
-        // Mise à jour (étape ORM) : c'est ORM::find() qui fait la requête.
-        // Sans paramètre, il prend toutes les lignes triées par "id ASC".
-        return $this->orm->find(self::TABLE);
-    }
+    // Le CRUD create(), read(), update(), delete() et readAll() était écrit
+    // ici. Leurs commentaires disaient notamment :
+    //   - read() renvoie la ligne, ou null si l'id n'existe pas ;
+    //   - update() et delete() renvoient true si une ligne a été touchée
+    //     (rowCount() > 0) ;
+    //   - readAll() s'appelle read_all dans le sujet, mais PSR-1 impose le
+    //     camelCase ; sans paramètre, find() prend toutes les lignes
+    //     triées par "id ASC" (query() suffisait avant l'ORM : aucune
+    //     valeur venant du visiteur).
+    // Mise à jour (étape « Les entités ») : ces méthodes sont héritées
+    // d'Entity, avec exactement le même comportement (testé dans
+    // tests/UserModelTest.php). delete() accepte en plus d'être appelée
+    // sans id : $user->delete() supprime l'utilisateur lui-même.
 
     /**
      * Lit un utilisateur d'après son email (unique dans la table).
@@ -248,8 +209,24 @@ class UserModel
         // tableau, donc une valeur préparée (l'email vient du formulaire).
         // LIMIT 1 : l'email est unique, une ligne suffit. find() renvoie une
         // LISTE de lignes : on prend la première, ou null si la liste est vide.
-        $users = $this->orm->find(self::TABLE, ['WHERE' => ['email' => $email], 'LIMIT' => 1]);
+        // Mise à jour (étape « Les entités ») : find() d'Entity, qui connaît
+        // déjà la table (plus besoin de la redonner à l'ORM).
+        $users = $this->find(['WHERE' => ['email' => $email], 'LIMIT' => 1]);
         return $users[0] ?? null;
+    }
+
+    /**
+     * Les colonnes que save() enregistre : la liste blanche.
+     *
+     * Pourquoi ? Le tableau donné au constructeur peut venir d'un formulaire
+     * (getQueryParams()) et contenir d'autres clés, comme un bouton
+     * "submit". Elles restent sur l'objet, mais save() ne les envoie pas.
+     * Pertinence : redéfinit le crochet Entity::columns(), qui renverrait
+     * sinon TOUS les attributs publics.
+     */
+    protected function columns(): array
+    {
+        return self::COLUMNS;
     }
 
     /**
@@ -263,9 +240,14 @@ class UserModel
      * utilisateurs avec le même mot de passe ont des empreintes différentes.
      * L'empreinte fait 60 caractères : la colonne VARCHAR(255) est assez grande.
      *
+     * Mise à jour (étape « Les entités ») : la méthode redéfinit le crochet
+     * Entity::prepareFields(), qu'Entity appelle avant chaque create() et
+     * update(). Elle passe de "private" à "protected" : une méthode privée
+     * est invisible pour la classe mère, qui ne pourrait pas l'appeler.
+     *
      * @throws InvalidArgumentException pour une colonne inconnue ou aucun champ
      */
-    private function prepareFields(array $fields): array
+    protected function prepareFields(array $fields): array
     {
         if ($fields === []) {
             throw new InvalidArgumentException('Aucun champ à enregistrer');
