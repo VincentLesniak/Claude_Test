@@ -1,5 +1,9 @@
 <?php
 
+// phpcs:disable PSR1.Files.SideEffects
+// Comme index.php, ce fichier définit une constante ET exécute du code :
+// on désactive la règle PSR-1 correspondante pour lui seul.
+
 /**
  * tests/run.php : lance tous les tests du projet.
  *
@@ -15,6 +19,12 @@
  * code que GitHub Actions regarde pour afficher une croix rouge ou une
  * coche verte.
  */
+
+// Les vues utilisent la constante BASE_URI, normalement définie par
+// index.php. Les tests qui appellent Core ou un controller directement ne
+// passent pas par index.php : on la définit ici, avec la valeur d'un projet
+// installé à la racine du serveur ("" : pas de préfixe dans les URL).
+define('BASE_URI', '');
 
 require_once __DIR__ . '/Assert.php';
 require_once __DIR__ . '/Server.php';

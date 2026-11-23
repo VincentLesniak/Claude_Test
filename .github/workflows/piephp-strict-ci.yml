@@ -60,13 +60,14 @@ jobs:
             "src/Controller/UserController.php"
             "src/Model/UserModel.php"
             "src/View/Error/404.php"
+            # Étape "Le Controller" : render(), layout et vues
+            "src/View/index.php"
+            "src/View/App/index.php"
+            "src/View/User/index.php"
+            "src/View/User/register.php"
+            "src/View/User/show.php"
 
             # Étapes suivantes (à décommenter quand elles sont codées) :
-            # "src/View/index.php"
-            # "src/View/App/index.php"
-            # "src/View/User/index.php"
-            # "src/View/User/register.php"
-            # "src/View/User/show.php"
             # "Core/Request.php"
             # "Core/Database.php"
             # "Core/ORM.php"

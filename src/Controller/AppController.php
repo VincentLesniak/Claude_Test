@@ -2,7 +2,7 @@
 
 // Namespace "Controller" : la classe est rangée dans src/Controller/.
 // PSR-12 impose un namespace pour chaque classe ; l'autoloader la retrouve
-// grâce à son nom court (UserController.php dans src/Controller/).
+// grâce à son nom court (AppController.php dans src/Controller/).
 namespace Controller;
 
 // "use" importe la classe mère Core\Controller : dans ce fichier, le mot
@@ -15,8 +15,15 @@ use Core\Controller;
  */
 class AppController extends Controller
 {
+    /**
+     * Page d'accueil : affiche src/View/App/index.php dans le layout.
+     */
     public function indexAction()
     {
-        echo __CLASS__ . '::' . __FUNCTION__ . ' [OK]' . PHP_EOL;
+        // render() est héritée de Core\Controller. Le dossier "App" est
+        // déduit du nom de la classe (AppController -> src/View/App/).
+        // La clé 'title' devient la variable $title, utilisée par le layout
+        // pour la balise <title>.
+        $this->render('index', ['title' => 'Accueil']);
     }
 }

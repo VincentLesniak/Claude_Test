@@ -12,6 +12,7 @@ namespace Core;
  *   3. sinon, routage automatique : /controller/action (ou ?c=...&a=...)
  *   4. on vérifie que le controller et l'action existent, sinon 404
  *   5. on instancie le controller et on appelle l'action
+ *   6. à la fin de run(), le controller est détruit et affiche la page
  *
  * Exemple complet : http://localhost/PiePHP/user/add
  *   -> URL "/user/add" -> aucune route déclarée -> controller "user", action "add"
@@ -71,6 +72,11 @@ class Core
         // new $controllerName() équivaut ici à new \Controller\UserController().
         $controller = new $controllerName();
         $controller->$actionName();
+
+        // L'action a appelé render(), qui a préparé la page sans l'afficher.
+        // À la fin de run(), la variable locale $controller disparaît : PHP
+        // détruit l'objet et appelle Controller::__destruct(), qui affiche
+        // la page (voir Core/Controller.php).
     }
 
     /**
