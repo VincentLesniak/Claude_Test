@@ -82,6 +82,60 @@ Pour l'utiliser avec Apache (http://localhost/PiePHP/), le projet doit être
 dans `C:\xampp\htdocs\PiePHP`, et le `RewriteBase` du `.htaccess` doit
 correspondre au nom de ce dossier.
 
+## Lancer le site (Linux, Ubuntu / Debian)
+
+Ajout (partie « My cinema by PiePHP ») : la même marche à suivre sous
+Linux. Les commandes sont à taper dans un terminal, depuis le dossier du
+projet.
+
+1. **Installer PHP et MySQL** (une seule fois) :
+   ```bash
+   sudo apt update
+   sudo apt install php php-mysql mysql-server
+   ```
+   `php-mysql` est l'extension `pdo_mysql`, qui permet à PHP (donc à
+   `Core\Database`) de parler à MySQL. Sous Debian, `mariadb-server`
+   remplace `mysql-server` : les commandes suivantes sont les mêmes.
+
+2. **Créer la base, un utilisateur et les tables** :
+   ```bash
+   sudo mysql -e "CREATE DATABASE IF NOT EXISTS piephp CHARACTER SET utf8mb4"
+   sudo mysql -e "CREATE USER IF NOT EXISTS 'piephp'@'localhost' IDENTIFIED BY 'choisis_un_mot_de_passe'"
+   sudo mysql -e "GRANT ALL PRIVILEGES ON piephp.* TO 'piephp'@'localhost'"
+   sudo mysql piephp < database.sql
+   ```
+   Pourquoi un utilisateur à part ? Sous Ubuntu, le compte `root` de MySQL
+   n'a pas de mot de passe : il se connecte grâce au compte `root` de
+   Linux (`sudo mysql`, méthode « auth_socket »). PHP, lui, n'est pas
+   `root` : avec `root` et un mot de passe vide, il obtiendrait « Access
+   denied ». On crée donc un utilisateur `piephp` qui n'a accès qu'à la
+   base `piephp` (c'est aussi plus sûr que de donner `root` au site).
+
+3. **Configurer la connexion** : copie le modèle et mets-y cet
+   utilisateur.
+   ```bash
+   cp exemple.config.local.json config.local.json
+   ```
+   Dans `config.local.json`, remplace `TON_UTILISATEUR_MYSQL` par `piephp`
+   et `TON_MOT_DE_PASSE_MYSQL` par le mot de passe choisi à l'étape 2.
+   Ce fichier est ignoré par Git : le mot de passe ne part pas sur GitHub.
+
+4. **Lancer le serveur** :
+   ```bash
+   php -S localhost:8000
+   ```
+   puis ouvre **http://localhost:8000/**. **Ctrl+C** arrête le serveur.
+
+Pour l'utiliser avec Apache (http://localhost/PiePHP/, comme dans le
+sujet) : `sudo apt install apache2 libapache2-mod-php`, place le projet
+dans `/var/www/html/PiePHP`, active la réécriture d'URL avec
+`sudo a2enmod rewrite`, autorise le `.htaccess` (`AllowOverride All` pour
+`/var/www/` dans `/etc/apache2/apache2.conf`), puis
+`sudo systemctl restart apache2`. Le `RewriteBase` du `.htaccess` doit
+correspondre au nom du dossier.
+
+## Essayer le site
+
 Parcours conseillé pour tout essayer : cliquer sur un film (détail avec son
 genre), s'inscrire puis se connecter, ajouter / modifier un film, cliquer
 sur « J'ai vu ce film », retrouver le film dans son profil puis l'en

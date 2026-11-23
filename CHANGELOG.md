@@ -17,6 +17,9 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 - README : section « Lancer le site (Windows + XAMPP) » (créer la base avec
   le `mysql` de XAMPP, lancer le serveur intégré de PHP depuis le dossier
   du projet, vérifier la configuration).
+- README : section « Lancer le site (Linux, Ubuntu / Debian) » (paquets à
+  installer, utilisateur MySQL dédié car `root` utilise auth_socket,
+  `config.local.json`, serveur intégré ou Apache).
 
 ## [1.0.0] - 2026-11-23
 
