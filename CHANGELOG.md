@@ -13,6 +13,40 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
+Étapes « Mise en pratique », « Le Model » et « Request » du sujet.
+
+### Ajouté
+- Classe `Core\Request` : récupère les paramètres GET et POST et les
+  nettoie (`trim`, `stripslashes`, `htmlspecialchars`), y compris les
+  sous-tableaux. Méthodes `isPost()`, `getQuery()`, `getPost()` et
+  `getQueryParams()`.
+- Classe `Core\Database` : une seule connexion PDO partagée, construite à
+  partir de la section `database` de `config.json` (MySQL, ou SQLite pour
+  les tests).
+- `Model\UserModel` : attributs privés `email` et `password`, `save()`, et
+  le CRUD `create()`, `read()`, `update()`, `delete()`, `readAll()`
+  (`read_all` dans le sujet), plus `readByEmail()` et `checkCredentials()`.
+  Requêtes préparées, liste blanche des colonnes et mots de passe hachés
+  avec `password_hash()`.
+- Inscription (`/user/register`, `/inscription`) : vérifie l'email, la
+  longueur du mot de passe (8 caractères minimum) et refuse un email déjà
+  inscrit.
+- Connexion (`/user/login`) avec session, et déconnexion (`/user/logout`).
+- Messages d'erreur et de réussite dans les vues `register` et `login`,
+  lien « Profil » dans le menu.
+- Tests de `Request`, `Database`, `UserModel` et de l'inscription / connexion
+  (base SQLite en mémoire, `tests/TestDatabase.php`).
+
+### Modifié
+- `Core\Controller` crée un objet `Request` dans son constructeur : tous
+  les controllers disposent de `$this->request`.
+- `/user/show` affiche le profil de l'utilisateur connecté, lu en base avec
+  `UserModel::read()` (le profil d'exemple reste affiché sinon).
+- Une base de données injoignable affiche un message clair au lieu d'une
+  erreur PHP.
+- CI : `Core/Request.php` et `Core/Database.php` ajoutés aux fichiers
+  requis ; extension `pdo_sqlite` pour les tests.
+
 ## [0.2.0] - 2026-11-23
 
 Étapes 4 et 5 du sujet (front controller et routeur), puis étape « Le

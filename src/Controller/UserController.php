@@ -8,6 +8,9 @@ namespace Controller;
 // "use" importe la classe mère Core\Controller : dans ce fichier, le mot
 // "Controller" seul désigne donc Core\Controller (et pas le namespace).
 use Core\Controller;
+use Model\UserModel;
+use PDOException;
+use RuntimeException;
 
 /**
  * Controller de l'entité "user" (avec UserModel et la table users).
@@ -22,6 +25,15 @@ use Core\Controller;
  * src/View/User/ avec render(). Le traitement des formulaires (enregistrer
  * un utilisateur, vérifier un mot de passe) viendra à l'étape "Mise en
  * pratique", avec le model.
+ *
+ * Mise à jour (étapes "Mise en pratique", "Le Model" et "Request") : c'est
+ * fait. registerAction() et loginAction() servent deux fois :
+ *   - en GET  (on arrive sur la page)        : elles affichent le formulaire ;
+ *   - en POST (on a validé le formulaire)    : elles lisent les champs avec
+ *     $this->request, demandent au UserModel d'enregistrer ou de vérifier
+ *     l'utilisateur, puis réaffichent la vue avec un message.
+ * Le controller ne contient AUCUN SQL : c'est le rôle du model. Il ne
+ * contient pas non plus de HTML : c'est le rôle des vues. Il "contrôle".
  */
 class UserController extends Controller
 {
@@ -46,18 +58,108 @@ class UserController extends Controller
     /**
      * /user/register (ou /inscription, voir src/routes.php) : formulaire
      * d'inscription.
+     *
+     * Mise à jour (étape "Mise en pratique") : quand le formulaire est
+     * envoyé (POST), on suit le sujet : instancier UserModel, récupérer les
+     * paramètres POST, mettre à jour les attributs du model, appeler save().
+     * Avant d'enregistrer, on vérifie les champs : le "required" et le
+     * type="email" du HTML se contournent facilement, seule la vérification
+     * côté serveur (ici, en PHP) compte vraiment.
      */
     public function registerAction()
     {
-        $this->render('register', ['title' => 'Inscription']);
+        $scope = ['title' => 'Inscription'];
+
+        if ($this->request->isPost()) {
+            $email = $this->request->getPost('email', '');
+            $password = $this->request->getPost('password', '');
+
+            $scope['email'] = $email;
+            $scope['error'] = $this->validate($email, $password);
+
+            if ($scope['error'] === null) {
+                try {
+                    $user = new UserModel();
+                    // L'email est UNIQUE dans la table : on vérifie avant,
+                    // pour afficher un message clair au lieu d'une erreur SQL.
+                    if ($user->readByEmail($email) !== null) {
+                        $scope['error'] = 'Un compte existe déjà avec cet email.';
+                    } else {
+                        $user->setEmail($email)->setPassword($password)->save();
+                        $scope['success'] = 'Votre compte a été créé. Vous pouvez vous connecter.';
+                        unset($scope['email']);
+                    }
+                } catch (PDOException | RuntimeException $e) {
+                    $scope['error'] = $this->databaseError();
+                }
+            }
+        }
+
+        $this->render('register', $scope);
     }
 
     /**
      * /user/login : formulaire de connexion.
+     *
+     * Mise à jour (étape "Mise en pratique", partie "Pour aller plus loin") :
+     * en POST, le model vérifie l'email et le mot de passe. S'ils sont bons,
+     * on retient l'id de l'utilisateur dans la SESSION.
+     *
+     * La session, c'est la mémoire du serveur entre deux pages : HTTP oublie
+     * tout d'une requête à l'autre. session_start() donne au navigateur un
+     * cookie avec un identifiant unique (PHPSESSID) ; à chaque page suivante,
+     * PHP retrouve grâce à lui le tableau $_SESSION de ce visiteur.
      */
     public function loginAction()
     {
-        $this->render('login', ['title' => 'Connexion']);
+        $scope = ['title' => 'Connexion'];
+
+        if ($this->request->isPost()) {
+            $email = $this->request->getPost('email', '');
+            $scope['email'] = $email;
+
+            try {
+                $user = (new UserModel())
+                    ->setEmail($email)
+                    ->setPassword($this->request->getPost('password', ''))
+                    ->checkCredentials();
+
+                if ($user === null) {
+                    // Même message que l'email soit inconnu ou le mot de passe
+                    // faux : on ne révèle pas quels emails sont inscrits.
+                    $scope['error'] = 'Email ou mot de passe incorrect.';
+                } else {
+                    $this->startSession();
+                    // session_regenerate_id() change l'identifiant de session
+                    // à la connexion : un identifiant volé AVANT la connexion
+                    // ne sert plus à rien (attaque "fixation de session").
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        session_regenerate_id(true);
+                    }
+                    $_SESSION['user_id'] = (int) $user['id'];
+                    $scope['success'] = 'Connexion réussie. Bienvenue ' . $user['email'] . ' !';
+                }
+            } catch (PDOException | RuntimeException $e) {
+                $scope['error'] = $this->databaseError();
+            }
+        }
+
+        $this->render('login', $scope);
+    }
+
+    /**
+     * /user/logout : déconnexion. On vide la session, puis on affiche le
+     * formulaire de connexion.
+     */
+    public function logoutAction()
+    {
+        $this->startSession();
+        $_SESSION = [];
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+
+        $this->render('login', ['title' => 'Connexion', 'success' => 'Vous êtes déconnecté.']);
     }
 
     /**
@@ -67,11 +169,78 @@ class UserController extends Controller
      * variable $user dans src/View/User/show.php. Comme on ne lit pas encore
      * la base de données, ce sont des données d'exemple écrites en dur ; plus
      * tard, elles viendront de UserModel.
+     *
+     * Mise à jour (étape "Le Model") : si un utilisateur est connecté, son
+     * profil est lu en base avec UserModel::read(). Sinon, on garde les
+     * données d'exemple, avec une invitation à se connecter.
      */
     public function showAction()
     {
         $user = ['id' => 1, 'email' => 'exemple@piephp.fr'];
+        $scope = ['title' => 'Profil', 'example' => true];
 
-        $this->render('show', ['title' => 'Profil', 'user' => $user]);
+        $this->startSession();
+        if (isset($_SESSION['user_id'])) {
+            try {
+                $found = (new UserModel())->read((int) $_SESSION['user_id']);
+                if ($found !== null) {
+                    $user = $found;
+                    $scope['example'] = false;
+                }
+            } catch (PDOException | RuntimeException $e) {
+                $scope['error'] = $this->databaseError();
+            }
+        }
+
+        // On ne transmet à la vue que ce qu'elle affiche : jamais l'empreinte
+        // du mot de passe, même hachée.
+        $scope['user'] = ['id' => $user['id'], 'email' => $user['email']];
+        $this->render('show', $scope);
+    }
+
+    /**
+     * Vérifie les champs du formulaire d'inscription.
+     *
+     * filter_var(..., FILTER_VALIDATE_EMAIL) renvoie false si le texte n'a
+     * pas la forme d'une adresse email.
+     *
+     * @return string|null le message d'erreur, ou null si tout est bon
+     */
+    private function validate(string $email, string $password): ?string
+    {
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return 'Adresse email invalide.';
+        }
+        if (strlen($password) < 8) {
+            return 'Le mot de passe doit contenir au moins 8 caractères.';
+        }
+        return null;
+    }
+
+    /**
+     * Démarre la session si ce n'est pas déjà fait.
+     *
+     * session_start() envoie un cookie, donc un en-tête HTTP : impossible si
+     * du texte a déjà été envoyé au navigateur (headers_sent()). Grâce à
+     * render(), rien n'est affiché avant la fin, donc en temps normal ce cas
+     * n'arrive pas ; il arrive en revanche dans les tests en ligne de
+     * commande, où l'on évite ainsi un avertissement.
+     */
+    private function startSession(): void
+    {
+        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+            session_start();
+        }
+    }
+
+    /**
+     * Message affiché quand la base ne répond pas (MySQL arrêté, mauvais mot
+     * de passe dans config.json...). On ne montre pas le détail de l'erreur
+     * au visiteur : il pourrait contenir des informations sur le serveur.
+     */
+    private function databaseError(): string
+    {
+        return 'La base de données est indisponible. Vérifiez config.json et '
+            . 'que la table users existe (database.sql).';
     }
 }

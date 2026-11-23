@@ -29,9 +29,29 @@
  *
  * Pour vérifier que la page est valide W3C : https://validator.w3.org/
  * (colle le code source de la page affichée, layout compris).
+ *
+ * Mise à jour (étape "Mise en pratique") : la vue reçoit maintenant de
+ * l'action jusqu'à trois variables facultatives :
+ *   $error   : un message d'erreur (email invalide, déjà utilisé...)
+ *   $success : un message de réussite
+ *   $email   : l'email déjà tapé, remis dans le champ pour ne pas avoir à
+ *              le retaper après une erreur
+ * Elles sont affichées avec htmlspecialchars(). Le 4e paramètre "false"
+ * (double_encode) évite d'échapper DEUX fois : Request a déjà transformé
+ * "&" en "&amp;", on ne veut pas obtenir "&amp;amp;" à l'écran.
  */
 ?>
 <h1>Connexion</h1>
+
+<?php /* Mise à jour (étape "Mise en pratique") : message envoyé par l'action
+   après l'envoi du formulaire ($error ou $success, voir UserController).
+   isset() : la variable n'existe pas au premier affichage (en GET). */ ?>
+<?php if (isset($error)) : ?>
+    <p class="error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8', false) ?></p>
+<?php endif; ?>
+<?php if (isset($success)) : ?>
+    <p class="success" role="status"><?= htmlspecialchars($success, ENT_QUOTES, 'UTF-8', false) ?></p>
+<?php endif; ?>
 
 <form method="post" action="<?= BASE_URI ?>/user/login">
     <!-- Le "for" du label correspond à l'"id" du champ : cliquer sur le
@@ -39,7 +59,7 @@
     <p>
         <label for="email">Email</label>
         <!-- type="email" : le navigateur vérifie le format x@y.z. -->
-        <input type="email" id="email" name="email" required>
+        <input type="email" id="email" name="email" value="<?= htmlspecialchars($email ?? '', ENT_QUOTES, 'UTF-8', false) ?>" required>
     </p>
     <p>
         <label for="password">Mot de passe</label>

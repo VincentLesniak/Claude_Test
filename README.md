@@ -38,6 +38,18 @@ n'accepte pas les commentaires, d'où cette explication ici :
 `host`/`port` désignent le serveur MySQL, `dbname` la base, `user` et
 `password` le compte utilisé. Adapte ces valeurs à ta machine.
 
+Mise à jour (étape « Le Model ») : `Core/Database.php` existe maintenant et
+lit ce fichier. Pour que l'inscription et la connexion fonctionnent :
+
+1. crée la base : `mysql -u root -p -e "CREATE DATABASE piephp CHARACTER SET utf8mb4"`
+2. crée la table `users` : `mysql -u root -p piephp < database.sql`
+3. vérifie `user` et `password` dans `config.json`.
+
+Si la base est injoignable, les pages d'inscription et de connexion
+affichent « La base de données est indisponible » au lieu d'une erreur PHP.
+Les tests, eux, n'ont pas besoin de MySQL : ils utilisent une base SQLite en
+mémoire (`tests/TestDatabase.php`).
+
 ## Tests
 
 Depuis la racine du projet : `php tests/run.php`
