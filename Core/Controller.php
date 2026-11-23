@@ -52,6 +52,28 @@ class Controller
     protected static $render = null;
 
     /**
+     * Ajout (étape "Request") : les paramètres GET et POST de la requête,
+     * déjà nettoyés. Dans une action : $this->request->getPost('email').
+     *
+     * @var Request
+     */
+    protected $request;
+
+    /**
+     * Ajout (étape "Request") : le sujet demande d'instancier Request "dans
+     * le constructeur de tous vos controllers". En le faisant ICI, dans la
+     * classe mère, tous les controllers en profitent sans écrire une ligne.
+     *
+     * Attention : si un controller écrit un jour son propre __construct(),
+     * il devra appeler parent::__construct() au début, sinon $this->request
+     * restera vide.
+     */
+    public function __construct()
+    {
+        $this->request = new Request();
+    }
+
+    /**
      * Construit la page : la vue $view insérée dans le layout src/View/index.php.
      *
      * Le dossier de la vue est déduit du nom du controller :

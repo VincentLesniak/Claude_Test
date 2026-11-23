@@ -38,6 +38,23 @@ n'accepte pas les commentaires, d'où cette explication ici :
 `host`/`port` désignent le serveur MySQL, `dbname` la base, `user` et
 `password` le compte utilisé. Adapte ces valeurs à ta machine.
 
+Mise à jour (étape « Le Model ») : `Core/Database.php` existe maintenant et
+lit ce fichier. Pour que l'inscription et la connexion fonctionnent :
+
+1. crée la base : `mysql -u root -p -e "CREATE DATABASE piephp CHARACTER SET utf8mb4"`
+2. crée la table `users` : `mysql -u root -p piephp < database.sql`
+3. copie `exemple.config.local.json` en `config.local.json`
+   (`cp exemple.config.local.json config.local.json`) et remplace
+   `TON_UTILISATEUR_MYSQL` et `TON_MOT_DE_PASSE_MYSQL` par ton `user` et ton
+   `password`. `config.local.json` est ignoré par Git (`.gitignore`) : tes
+   vrais identifiants ne partent jamais sur GitHub. `config.json`, lui, est
+   commité et ne contient que des valeurs d'exemple.
+
+Si la base est injoignable, les pages d'inscription et de connexion
+affichent « La base de données est indisponible » au lieu d'une erreur PHP.
+Les tests, eux, n'ont pas besoin de MySQL : ils utilisent une base SQLite en
+mémoire (`tests/TestDatabase.php`).
+
 ## Tests
 
 Depuis la racine du projet : `php tests/run.php`

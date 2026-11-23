@@ -1,0 +1,12 @@
+{
+    "_lisez-moi": "Modèle de config.local.json. Copie ce fichier sous le nom config.local.json (ignoré par Git), puis remplace les valeurs en MAJUSCULES par les tiennes. Core\\Database lit alors config.local.json à la place de config.json. Ne mets JAMAIS de vrai mot de passe dans ce fichier-ci : il est commité.",
+    "database": {
+        "driver": "mysql",
+        "host": "localhost",
+        "port": 3306,
+        "dbname": "piephp",
+        "charset": "utf8mb4",
+        "user": "TON_UTILISATEUR_MYSQL",
+        "password": "TON_MOT_DE_PASSE_MYSQL"
+    }
+}
