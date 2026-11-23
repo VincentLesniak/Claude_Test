@@ -1,0 +1,7 @@
+# robots.txt : fichier lu par les robots des moteurs de recherche (Googlebot...)
+# AVANT d'explorer le site. Il leur indique ce qu'ils ont le droit d'indexer.
+# Attention : ce n'est pas une protection, juste une consigne que les robots
+# polis respectent. La vraie sécurité, c'est le .htaccess.
+User-agent: *
+Disallow: /Core/
+Disallow: /src/
