@@ -43,7 +43,9 @@ lit ce fichier. Pour que l'inscription et la connexion fonctionnent :
 
 1. crée la base : `mysql -u root -p -e "CREATE DATABASE piephp CHARACTER SET utf8mb4"`
 2. crée la table `users` : `mysql -u root -p piephp < database.sql`
-3. copie `config.json` en `config.local.json` et mets-y ton `user` et ton
+3. copie `exemple.config.local.json` en `config.local.json`
+   (`cp exemple.config.local.json config.local.json`) et remplace
+   `TON_UTILISATEUR_MYSQL` et `TON_MOT_DE_PASSE_MYSQL` par ton `user` et ton
    `password`. `config.local.json` est ignoré par Git (`.gitignore`) : tes
    vrais identifiants ne partent jamais sur GitHub. `config.json`, lui, est
    commité et ne contient que des valeurs d'exemple.

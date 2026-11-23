@@ -69,6 +69,7 @@ jobs:
             # Étapes "Mise en pratique", "Le Model" et "Request"
             "Core/Request.php"
             "Core/Database.php"
+            "exemple.config.local.json"
 
             # Étapes suivantes (à décommenter quand elles sont codées) :
             # "Core/ORM.php"

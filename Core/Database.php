@@ -148,6 +148,10 @@ class Database
      *                         (root sans mot de passe, le défaut d'un LAMP local) ;
      *   - config.local.json : TES vrais identifiants, ignoré par Git
      *                         (voir .gitignore), jamais envoyé sur GitHub.
+     *   - exemple.config.local.json : le modèle de config.local.json, commité,
+     *                         avec les mêmes clés et des valeurs à remplacer
+     *                         (TON_UTILISATEUR_MYSQL...). On le copie, on le
+     *                         remplit, et c'est tout.
      * S'il existe, config.local.json est lu À LA PLACE de config.json.
      * (Les gros frameworks font pareil avec un fichier .env, ex. Laravel.)
      */
