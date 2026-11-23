@@ -95,7 +95,7 @@ la version de `VERSION` a bien sa section dans le CHANGELOG.
 ### Branches
 
 - `main` : uniquement les versions publiées, envoyées directement depuis
-  `dev` (sans PR). Chaque version porte un tag `vX.Y.Z`. C'est ce qu'on rend ou ce qu'on montre en soutenance.
+  `dev` (sans PR). Chaque version porte un tag `X.Y.Z`. C'est ce qu'on rend ou ce qu'on montre en soutenance.
 - `dev` : la branche d'intégration. Tout le travail en cours y est
   fusionné, via des pull requests validées par le CI.
 - une branche par fonctionnalité (ex. `feature/routeur`), créée depuis
@@ -114,11 +114,14 @@ sous la main, même si `dev` est cassé en plein milieu d'une étape.
    `git checkout main && git merge --ff-only dev && git push origin main`
    (`--ff-only` refuse la fusion si `main` contient un commit absent de
    `dev` : `main` reste ainsi une simple copie des versions de `dev`.)
-3. Sur `main`, créer et pousser le tag :
-   `git tag -a vX.Y.Z -m "Version X.Y.Z" && git push origin vX.Y.Z`
+3. Sur `main`, créer et pousser le tag (avec ou sans `v` devant) :
+   `git tag -a X.Y.Z -m "Version X.Y.Z" && git push origin X.Y.Z`,
+   ou créer la release depuis l'interface GitHub (Releases > Draft a new
+   release), qui crée le tag au passage.
 4. Le workflow `.github/workflows/release.yml` vérifie que le tag
    correspond à `VERSION`, relance les tests et publie la release GitHub
-   avec les notes du CHANGELOG.
+   (ou complète celle qui existe) avec les notes du CHANGELOG. Il peut
+   aussi être lancé à la main depuis l'onglet Actions pour un tag existant.
 
 Un tag *annoté* (`-a`) enregistre l'auteur, la date et un message, comme un
 commit : c'est la forme recommandée pour marquer une version.

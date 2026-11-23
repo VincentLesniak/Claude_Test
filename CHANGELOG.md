@@ -13,7 +13,10 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
-_Rien pour l'instant._
+### Modifié
+- Le workflow de release accepte les tags `X.Y.Z` comme `vX.Y.Z`, complète
+  une release déjà créée depuis l'interface GitHub et peut être lancé à la
+  main pour un tag existant.
 
 ## [0.1.0] - 2026-11-23
 
@@ -32,5 +35,5 @@ _Rien pour l'instant._
 - Versionnage : fichier `VERSION`, ce journal, workflow de release
   automatique sur les tags `vX.Y.Z`.
 
-[Non publié]: https://github.com/VincentLesniak/Claude_Test/compare/v0.1.0...dev
-[0.1.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/v0.1.0
+[Non publié]: https://github.com/VincentLesniak/Claude_Test/compare/0.1.0...dev
+[0.1.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.1.0
