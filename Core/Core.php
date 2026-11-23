@@ -71,7 +71,12 @@ class Core
      */
     private function notFound()
     {
-        http_response_code(404);
+        // headers_sent() : si du texte a déjà été affiché, les en-têtes HTTP
+        // sont partis et on ne peut plus changer le code (PHP afficherait un
+        // warning). Ça arrive par exemple pendant les tests en ligne de commande.
+        if (!headers_sent()) {
+            http_response_code(404);
+        }
         include implode(DIRECTORY_SEPARATOR, [dirname(__DIR__), 'src', 'View', 'Error', '404.php']);
     }
 
@@ -82,11 +87,15 @@ class Core
     private function getUrl()
     {
         // parse_url(..., PHP_URL_PATH) enlève la partie "?x=1".
-        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        // En ligne de commande (tests), REQUEST_URI n'existe pas : on prend '/'.
+        $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
         // On retire le préfixe BASE_URI ("/PiePHP") s'il est présent.
-        if (BASE_URI !== '' && strpos($path, BASE_URI) === 0) {
-            $path = substr($path, strlen(BASE_URI));
+        // BASE_URI est définie dans index.php ; si on n'est pas passé par lui
+        // (tests en ligne de commande), on considère le projet à la racine.
+        $baseUri = defined('BASE_URI') ? BASE_URI : '';
+        if ($baseUri !== '' && strpos($path, $baseUri) === 0) {
+            $path = substr($path, strlen($baseUri));
         }
 
         // "/index.php" et "/" désignent tous les deux la page d'accueil.

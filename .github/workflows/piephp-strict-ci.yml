@@ -50,17 +50,18 @@ jobs:
             "Core/Core.php"
             # Tests automatiques
             "tests/run.php"
+            # Étapes 4 et 5 : front controller et routeur
+            "Core/Router.php"
+            "Core/Controller.php"
+            "src/routes.php"
+            "src/Controller/AppController.php"
+            "src/Controller/UserController.php"
+            "src/Model/UserModel.php"
+            "src/View/Error/404.php"
 
             # Étapes suivantes (à décommenter quand elles sont codées) :
-            # "Core/Router.php"
-            # "Core/Controller.php"
-            # "src/routes.php"
-            # "src/Controller/AppController.php"
-            # "src/Controller/UserController.php"
-            # "src/Model/UserModel.php"
             # "src/View/index.php"
             # "src/View/App/index.php"
-            # "src/View/Error/404.php"
             # "src/View/User/index.php"
             # "src/View/User/register.php"
             # "src/View/User/show.php"
