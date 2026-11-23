@@ -76,6 +76,20 @@ jobs:
             "Core/Entity.php"
             # Étape "Avancé - le moteur de templates"
             "Core/TemplateEngine.php"
+            # Partie "My cinema by PiePHP" : le mini-site
+            "src/Model/FilmModel.php"
+            "src/Model/GenreModel.php"
+            "src/Model/HistoriqueModel.php"
+            "src/Controller/FilmController.php"
+            "src/Controller/GenreController.php"
+            "src/Controller/HistoriqueController.php"
+            "src/View/Film/show.php"
+            "src/View/Film/form.php"
+            "src/View/Genre/index.php"
+            "src/View/Genre/form.php"
+            "src/View/User/edit.php"
+            "src/View/User/delete.php"
+            "database.sql"
 
             # Étapes suivantes (à décommenter quand elles sont codées) :
             # "src/View/Flash/default.php"

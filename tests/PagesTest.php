@@ -39,7 +39,12 @@ return [
     },
 
     'index.php ne produit ni erreur ni avertissement PHP' => function (): void {
-        foreach (['/index.php', '/user', '/user/login', '/user/register', '/user/show'] as $path) {
+        // Mise à jour (partie « My cinema by PiePHP ») : avec les pages du
+        // mini-site. Le serveur de test n'a pas MySQL : elles doivent
+        // afficher « base indisponible » proprement, sans erreur PHP.
+        // (/film/add redirige vers /user/login, que file_get_contents() suit.)
+        $paths = ['/index.php', '/user', '/user/login', '/user/register', '/user/show'];
+        foreach (array_merge($paths, ['/genre', '/film/show?id=1', '/film/add', '/genre/add']) as $path) {
             $body = Server::request($path);
             foreach (['Fatal error', 'Warning', 'Notice', 'Deprecated'] as $error) {
                 Assert::true(strpos($body, $error) === false, "$path affiche un(e) \"$error\"");
@@ -72,7 +77,8 @@ return [
     },
 
     'chaque page a les bases d\'un HTML valide, et une seule fois' => function (): void {
-        foreach (['/', '/user', '/user/login', '/user/register', '/user/show'] as $path) {
+        // Mise à jour (partie « My cinema by PiePHP ») : avec les pages du mini-site.
+        foreach (['/', '/user', '/user/login', '/user/register', '/user/show', '/genre', '/film/show?id=1'] as $path) {
             $html = Server::request($path);
             // substr_count compte les occurrences : si une vue contenait
             // encore son propre <html>, on en trouverait deux.
