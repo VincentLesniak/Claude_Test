@@ -1,21 +1,35 @@
 # -----------------------------------------------------------------------------
 # Release
 # -----------------------------------------------------------------------------
-# Se déclenche quand on pousse un tag de version, par exemple :
+# Se déclenche quand on pousse un tag de version, avec ou sans "v" devant :
+#     git tag -a 0.1.0 -m "Version 0.1.0" && git push origin 0.1.0
 #     git tag -a v0.1.0 -m "Version 0.1.0" && git push origin v0.1.0
+# Créer une release depuis l'interface GitHub (Releases > Draft a new
+# release) crée aussi le tag et déclenche donc ce workflow.
+#
+# On peut aussi le lancer à la main (onglet Actions > Release > Run
+# workflow) pour un tag qui existe déjà, par exemple pour compléter une
+# release créée avant ce workflow.
 #
 # Le workflow vérifie que le tag correspond au fichier VERSION, relance les
-# tests, puis crée la "Release" GitHub (page de téléchargement de la
-# version) avec le texte du CHANGELOG correspondant.
+# tests, puis crée la "Release" GitHub, ou complète celle qui existe déjà,
+# avec le texte du CHANGELOG correspondant.
 # -----------------------------------------------------------------------------
 name: Release
 
 on:
   push:
     tags:
-      - 'v*.*.*'
+      # Syntaxe "glob" de GitHub : [0-9]* = un chiffre suivi de n'importe quoi.
+      - '[0-9]*.[0-9]*.[0-9]*'
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag existant à publier (ex. 0.1.0)'
+        required: true
 
-# Créer une release demande le droit d'écrire dans le dépôt.
+# Créer ou modifier une release demande le droit d'écrire dans le dépôt.
 permissions:
   contents: write
 
@@ -23,18 +37,23 @@ jobs:
   release:
     name: Publication de la release
     runs-on: ubuntu-latest
+    env:
+      # Lancement manuel : le tag vient du formulaire. Sinon, GITHUB_REF_NAME
+      # contient le nom du tag poussé.
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
-      - name: Récupération du code
+      - name: Récupération du code du tag
         uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TAG }}
 
       - name: Le tag correspond-il au fichier VERSION ?
-        # GITHUB_REF_NAME vaut le nom du tag, ex. "v0.1.0".
-        # ${GITHUB_REF_NAME#v} retire le "v" du début -> "0.1.0".
+        # ${TAG#v} retire un éventuel "v" au début : "v0.1.0" -> "0.1.0".
         run: |
-          tag="${GITHUB_REF_NAME#v}"
+          tag="${TAG#v}"
           file="$(cat VERSION)"
           if [ "$tag" != "$file" ]; then
-            echo "::error::Le tag v$tag ne correspond pas au fichier VERSION ($file)."
+            echo "::error::Le tag $TAG ne correspond pas au fichier VERSION ($file)."
             exit 1
           fi
 
@@ -59,7 +78,14 @@ jobs:
           ' CHANGELOG.md > release-notes.md
           cat release-notes.md
 
-      - name: Création de la release GitHub
+      - name: Création ou mise à jour de la release GitHub
+        # Si la release existe déjà (créée depuis l'interface), on remplace
+        # seulement ses notes ; sinon on la crée.
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --title "PiePHP $GITHUB_REF_NAME" --notes-file release-notes.md
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file release-notes.md
+          else
+            gh release create "$TAG" --title "PiePHP $TAG" --notes-file release-notes.md
+          fi
