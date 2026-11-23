@@ -22,7 +22,8 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
   `getQueryParams()`.
 - Classe `Core\Database` : une seule connexion PDO partagée, construite à
   partir de la section `database` de `config.json` (MySQL, ou SQLite pour
-  les tests).
+  les tests). Les vrais identifiants vont dans `config.local.json`, ignoré
+  par Git et lu à la place de `config.json` s'il existe.
 - `Model\UserModel` : attributs privés `email` et `password`, `save()`, et
   le CRUD `create()`, `read()`, `update()`, `delete()`, `readAll()`
   (`read_all` dans le sujet), plus `readByEmail()` et `checkCredentials()`.

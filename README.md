@@ -43,7 +43,10 @@ lit ce fichier. Pour que l'inscription et la connexion fonctionnent :
 
 1. crée la base : `mysql -u root -p -e "CREATE DATABASE piephp CHARACTER SET utf8mb4"`
 2. crée la table `users` : `mysql -u root -p piephp < database.sql`
-3. vérifie `user` et `password` dans `config.json`.
+3. copie `config.json` en `config.local.json` et mets-y ton `user` et ton
+   `password`. `config.local.json` est ignoré par Git (`.gitignore`) : tes
+   vrais identifiants ne partent jamais sur GitHub. `config.json`, lui, est
+   commité et ne contient que des valeurs d'exemple.
 
 Si la base est injoignable, les pages d'inscription et de connexion
 affichent « La base de données est indisponible » au lieu d'une erreur PHP.

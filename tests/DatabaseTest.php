@@ -45,6 +45,11 @@ return [
         }
     },
 
+    'config.local.json (identifiants privés) est ignoré par Git' => function (): void {
+        $gitignore = file_get_contents(dirname(__DIR__) . '/.gitignore');
+        Assert::contains('/config.local.json', $gitignore);
+    },
+
     'les erreurs SQL lèvent une exception PDOException' => function (): void {
         $pdo = TestDatabase::create();
         Database::setConnection(null);

@@ -140,10 +140,23 @@ class Database
      * config.json n'est pas accessible depuis le navigateur grâce au
      * .htaccess : le mot de passe de la base ne peut pas être lu par un
      * visiteur.
+     *
+     * Ajout : le .htaccess protège du NAVIGATEUR, mais pas de Git. Un fichier
+     * commité est lisible par tous ceux qui voient le dépôt, et il reste dans
+     * l'historique même si on l'efface ensuite. On sépare donc :
+     *   - config.json       : commité, valeurs d'exemple sans vrai secret
+     *                         (root sans mot de passe, le défaut d'un LAMP local) ;
+     *   - config.local.json : TES vrais identifiants, ignoré par Git
+     *                         (voir .gitignore), jamais envoyé sur GitHub.
+     * S'il existe, config.local.json est lu À LA PLACE de config.json.
+     * (Les gros frameworks font pareil avec un fichier .env, ex. Laravel.)
      */
     private static function loadConfig(): array
     {
-        $file = self::$configFile ?? dirname(__DIR__) . DIRECTORY_SEPARATOR . 'config.json';
+        $root = dirname(__DIR__) . DIRECTORY_SEPARATOR;
+        $file = self::$configFile ?? (is_file($root . 'config.local.json')
+            ? $root . 'config.local.json'
+            : $root . 'config.json');
         if (!is_file($file)) {
             throw new RuntimeException("Fichier de configuration introuvable : $file");
         }
