@@ -168,6 +168,72 @@ tags courts par du PHP classique avant d'exécuter la vue :
 
 Exemple : `src/View/User/show.php`.
 
+## Le mini-site my_cinema
+
+Ajout (partie « My cinema by PiePHP ») : un site communautaire construit
+avec le framework, où les membres mettent à jour une banque de films et
+gardent l'historique des films qu'ils ont vus.
+
+### Installer la base
+
+`database.sql` crée maintenant aussi les tables `genres`, `films` et
+`historiques` (avec deux films et trois genres d'exemple). Sur une base qui
+contient déjà `users`, il suffit de le réimporter :
+`mysql -u root -p piephp < database.sql` (les tables existantes sont
+gardées grâce à `IF NOT EXISTS`).
+
+### Les entités et leurs relations
+
+| Model | Table | Relation (attribut privé `$relations`) | Colonnes |
+| --- | --- | --- | --- |
+| `UserModel` | `users` | `'has many historiques'` | `email`, `password` |
+| `FilmModel` | `films` | `'has one genre'` | `titre`, `annee`, `resume`, `genre_id` |
+| `GenreModel` | `genres` | `'has many films'` | `nom` |
+| `HistoriqueModel` | `historiques` | `'has one film'` | `user_id`, `film_id`, `vu_le` |
+
+Aucun de ces models n'écrit de SQL : le CRUD vient de `Core\Entity`, les
+jointures de `Core\ORM`. Chacun ne contient que ses règles (`validate()`)
+et sa liste blanche de colonnes.
+
+### Les pages
+
+| URL | Rôle | Qui |
+| --- | --- | --- |
+| `/` | la liste des films (titre, année, genre) | tout le monde |
+| `/film/show?id=3` | le détail d'un film, avec son genre | tout le monde |
+| `/film/add`, `/film/edit?id=3` | ajouter, modifier un film | membres |
+| `/film/delete?id=3` | supprimer un film (bouton, POST) | membres |
+| `/genre` | la liste des genres et leur nombre de films | tout le monde |
+| `/genre/add`, `/genre/edit?id=2`, `/genre/delete?id=2` | gérer les genres | membres |
+| `/historique/add?film_id=3` | « J'ai vu ce film » (bouton, POST) | membres |
+| `/historique/delete?id=7` | retirer un film de son historique (POST) | membres |
+| `/user/register`, `/user/login`, `/user/logout` | inscription, connexion, déconnexion | tout le monde |
+| `/user/show` | son profil et son historique | membres |
+| `/user/edit`, `/user/delete` | modifier, supprimer son profil | membres |
+
+Les URL utilisent le routage automatique `/controller/action` ; l'id passe
+dans l'URL (`?id=3`) et le controller ne lit que ce paramètre
+(`Controller::queryId()`), jamais toute l'URL.
+
+### Ce que le framework apporte en plus
+
+`Core\Controller` gagne quelques outils utilisés par tous les controllers :
+
+- `redirect('/chemin')` : après un formulaire, renvoie le navigateur vers
+  une autre page (code HTTP 303, principe « Post / Redirect / Get » : F5 ne
+  renvoie pas le formulaire). Comme `render()`, l'en-tête part à la fin,
+  dans `__destruct()`.
+- `flash('success', 'Film ajouté.')` : un message rangé en session et
+  affiché une seule fois par le layout, sur la page suivante.
+- `requireLogin()` : réserve une action aux membres connectés.
+- `postValue('titre')`, `queryId()` : lire un champ ou un id sans
+  mauvaise surprise (tableau à la place d'un texte, id non numérique).
+
+Règles de sécurité appliquées partout : toute action qui modifie la base
+est un formulaire POST (jamais un simple lien) ; l'id du membre vient de la
+session, jamais du formulaire ; on ne peut retirer que les lignes de SON
+historique ; un genre qui a encore des films ne peut pas être supprimé.
+
 ## Tests
 
 Depuis la racine du projet : `php tests/run.php`

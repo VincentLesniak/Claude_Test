@@ -24,6 +24,9 @@ class TestDatabase
     /**
      * Crée une base vide avec la table users, et la donne à Core\Database
      * pour que les controllers l'utilisent à la place de MySQL.
+     *
+     * Mise à jour (partie « My cinema by PiePHP ») : avec aussi les tables
+     * genres, films et historiques.
      */
     public static function create(): PDO
     {
@@ -36,6 +39,36 @@ class TestDatabase
                 id       INTEGER PRIMARY KEY AUTOINCREMENT,
                 email    VARCHAR(255) NOT NULL UNIQUE,
                 password VARCHAR(255) NOT NULL
+            )'
+        );
+
+        // Ajout (partie « My cinema by PiePHP ») : les tables du mini-site,
+        // comme dans database.sql. Elles sont créées pour TOUS les tests :
+        // UserModel a maintenant la relation 'has many historiques', donc
+        // lire un utilisateur lit aussi la table historiques.
+        // Les FOREIGN KEY de MySQL sont omises : SQLite ne les applique pas
+        // par défaut, et les models suppriment eux-mêmes l'historique lié.
+        $pdo->exec(
+            'CREATE TABLE genres (
+                id  INTEGER PRIMARY KEY AUTOINCREMENT,
+                nom VARCHAR(100) NOT NULL UNIQUE
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE films (
+                id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                titre    VARCHAR(255) NOT NULL,
+                annee    INTEGER NULL,
+                resume   TEXT NULL,
+                genre_id INTEGER NULL
+            )'
+        );
+        $pdo->exec(
+            'CREATE TABLE historiques (
+                id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                film_id INTEGER NOT NULL,
+                vu_le   DATETIME NOT NULL
             )'
         );
 

@@ -99,7 +99,23 @@ return [
     },
 
     'un model sans relation n\'en a aucune' => function (): void {
-        Assert::same([], UserModel::getRelations());
+        // Mise à jour (partie « My cinema by PiePHP ») : UserModel a
+        // maintenant la relation 'has many historiques' (test suivant). Le
+        // model "sans relation" est donc une classe ANONYME : "new class
+        // (...) extends Entity {}" déclare une classe sans nom et crée
+        // aussitôt un objet. Les parenthèses après "class" sont les
+        // arguments du constructeur (aucun attribut, une base SQLite vide).
+        $plain = new class ([], Database::connect(['driver' => 'sqlite'])) extends Entity {
+        };
+        Assert::same([], $plain::getRelations());
+    },
+
+    'UserModel : la relation du sujet, User \'has many historiques\'' => function (): void {
+        // HistoriqueModel ne dit pas 'has many users' : c'est un 1 : N.
+        Assert::same(
+            [['type' => 'has many', 'table' => 'historiques', 'name' => 'historiques']],
+            UserModel::getRelations()
+        );
     },
 
     'has many : read() contient les commentaires de l\'article' => function () use ($database): void {

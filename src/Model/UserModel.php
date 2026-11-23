@@ -61,9 +61,33 @@ use InvalidArgumentException;
  *   $user = new UserModel(['email' => 'a@b.c', 'password' => 'secret']);
  *   $user->save();                      // $user->id contient le nouvel id
  *   $user = new UserModel(['id' => 3]); // l'utilisateur n°3, lu en base
+ *
+ * Mise à jour (partie « My cinema by PiePHP ») : un utilisateur garde
+ * l'historique des films qu'il a vus. Le sujet l'écrit
+ * « User 'has many historiques' » : c'est la relation $relations
+ * ci-dessous. Elle ajoute une entrée 'historiques' à chaque utilisateur lu
+ * (la liste de ses lignes de la table historiques).
  */
 class UserModel extends Entity
 {
+    /**
+     * Ajout (partie « My cinema by PiePHP ») : les relations du model,
+     * avec la phrase du sujet.
+     *
+     * 'has many historiques' : la table historiques contient une colonne
+     * user_id. HistoriqueModel ne répond pas 'has many users' : c'est donc
+     * un 1 : N (et pas un N : N), voir Entity::getRelations().
+     *
+     * Pourquoi ? UserController::deleteAction() s'en sert pour effacer
+     * l'historique d'un utilisateur avant de le supprimer lui-même.
+     * Pertinence : une phrase suffit, Entity et l'ORM font la jointure.
+     * "private static" : demandé par le sujet, lu par Entity grâce à la
+     * Reflection (voir Entity::declaredRelations()).
+     *
+     * @var string[]
+     */
+    private static $relations = ['has many historiques'];
+
     // Le nom de la table gérée par ce model était rangé ici, dans une
     // constante TABLE = 'users'.
     // Mise à jour (étape « Les entités ») : Entity::getTable() le déduit du
