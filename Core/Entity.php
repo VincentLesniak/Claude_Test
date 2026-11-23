@@ -134,6 +134,16 @@ abstract class Entity
      * Comme pour l'ORM, on peut donner sa propre connexion (les tests
      * passent une base SQLite en mémoire) ; sinon, celle de Core\Database.
      *
+     * La syntaxe de la signature, morceau par morceau :
+     *   array $params = []  un tableau, facultatif (vide par défaut) ;
+     *   ?PDO $db = null     un objet PDO OU null ("?" = type "nullable"),
+     *                       facultatif lui aussi (null par défaut) ;
+     *   $db ?? Database::getConnection()
+     *                       "??" renvoie $db s'il n'est pas null, sinon la
+     *                       valeur de droite : la connexion partagée.
+     * Donner la connexion de l'extérieur s'appelle l'"injection de
+     * dépendance" : l'objet ne choisit pas lui-même sa base.
+     *
      * Pourquoi ? C'est le cœur de l'étape : passer d'un tableau (anonyme,
      * sans méthodes) à un OBJET qui sait s'enregistrer lui-même.
      * Pertinence : sans lui, le controller devrait appeler un setter par
