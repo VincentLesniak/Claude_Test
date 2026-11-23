@@ -13,6 +13,8 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
+## [0.2.0] - 2026-11-23
+
 Étapes 4 et 5 du sujet (front controller et routeur), puis étape « Le
 Controller » (méthode `render()` et vues).
 
@@ -75,5 +77,6 @@ Controller » (méthode `render()` et vues).
 - Versionnage : fichier `VERSION`, ce journal, workflow de release
   automatique sur les tags `vX.Y.Z`.
 
-[Non publié]: https://github.com/VincentLesniak/Claude_Test/compare/0.1.0...dev
+[Non publié]: https://github.com/VincentLesniak/Claude_Test/compare/0.2.0...dev
+[0.2.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.2.0
 [0.1.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.1.0
