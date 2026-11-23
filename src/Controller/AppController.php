@@ -1,5 +1,9 @@
 <?php
 
+// Namespace "Controller" : rangée dans src/Controller/. PSR-12 impose un
+// namespace pour chaque classe ; l'autoloader la retrouve grâce au nom court.
+namespace Controller;
+
 use Core\Controller;
 
 /**

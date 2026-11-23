@@ -39,28 +39,40 @@ class Core
         // comme "/../../secret" pourrait faire inclure n'importe quel fichier
         // par l'autoloader.
         if (!ctype_alnum($route['controller']) || !ctype_alnum($route['action'])) {
-            http_response_code(404);
-            echo '404';
+            $this->notFound();
             return;
         }
 
-        // 4) Conventions de nommage : 'user' -> UserController, 'add' -> addAction.
-        // ucfirst() met la première lettre en majuscule.
-        $controllerName = ucfirst($route['controller']) . 'Controller';
+        // 4) Conventions de nommage : 'user' -> Controller\UserController,
+        // 'add' -> addAction. ucfirst() met la première lettre en majuscule.
+        // Le préfixe "Controller\\" est le namespace des controllers (en PHP,
+        // "\\" dans une chaîne donne un seul antislash).
+        $controllerName = 'Controller\\' . ucfirst($route['controller']) . 'Controller';
         $actionName = $route['action'] . 'Action';
 
         // class_exists() déclenche l'autoloader : si le fichier n'existe pas,
         // il renvoie false au lieu de planter avec une "Fatal error".
         if (!class_exists($controllerName) || !method_exists($controllerName, $actionName)) {
-            http_response_code(404); // code HTTP pour le navigateur et les robots
-            echo '404';
+            $this->notFound();
             return;
         }
 
         // 5) PHP accepte une chaîne comme nom de classe ou de méthode :
-        // new $controllerName() équivaut ici à new UserController().
+        // new $controllerName() équivaut ici à new \Controller\UserController().
         $controller = new $controllerName();
         $controller->$actionName();
+    }
+
+    /**
+     * Affiche la page 404 (src/View/Error/404.php).
+     * http_response_code(404) envoie le vrai code HTTP "Not Found" au
+     * navigateur et aux robots : sans lui, la page serait vue comme un succès
+     * (code 200) alors que la ressource n'existe pas.
+     */
+    private function notFound()
+    {
+        http_response_code(404);
+        include implode(DIRECTORY_SEPARATOR, [dirname(__DIR__), 'src', 'View', 'Error', '404.php']);
     }
 
     /**
