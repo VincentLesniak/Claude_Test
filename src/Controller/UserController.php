@@ -235,30 +235,17 @@ class UserController extends Controller
         return null;
     }
 
-    /**
-     * Démarre la session si ce n'est pas déjà fait.
-     *
-     * session_start() envoie un cookie, donc un en-tête HTTP : impossible si
-     * du texte a déjà été envoyé au navigateur (headers_sent()). Grâce à
-     * render(), rien n'est affiché avant la fin, donc en temps normal ce cas
-     * n'arrive pas ; il arrive en revanche dans les tests en ligne de
-     * commande, où l'on évite ainsi un avertissement.
-     */
-    private function startSession(): void
-    {
-        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-            session_start();
-        }
-    }
+    // startSession() démarrait la session si ce n'était pas déjà fait
+    // (session_start() envoie un cookie, donc un en-tête HTTP : impossible
+    // après headers_sent(), ce qui arrive dans les tests en ligne de
+    // commande).
+    // Mise à jour (partie « My cinema by PiePHP ») : elle a déménagé dans
+    // Core\Controller, en "protected", avec ses explications : les
+    // controllers Film, Genre et Historique en ont besoin aussi.
 
-    /**
-     * Message affiché quand la base ne répond pas (MySQL arrêté, mauvais mot
-     * de passe dans config.json...). On ne montre pas le détail de l'erreur
-     * au visiteur : il pourrait contenir des informations sur le serveur.
-     */
-    private function databaseError(): string
-    {
-        return 'La base de données est indisponible. Vérifiez config.json et '
-            . 'que la table users existe (database.sql).';
-    }
+    // databaseError() renvoyait le message affiché quand la base ne répond
+    // pas, sans le détail de l'erreur (il pourrait renseigner sur le
+    // serveur).
+    // Mise à jour (partie « My cinema by PiePHP ») : elle a déménagé dans
+    // Core\Controller, en "protected", pour servir à tous les controllers.
 }

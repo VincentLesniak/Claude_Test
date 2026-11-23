@@ -47,6 +47,8 @@ use ReflectionProperty;
  *     columns() (les colonnes enregistrables) et prepareFields() (un
  *     traitement avant écriture, ex. hacher un mot de passe) ;
  *   - des outils privés : setAttribute() et getFields().
+ *   - Ajout (partie « My cinema ») : getConnection(), qui prête la
+ *     connexion aux models (pour qu'un model en utilise un autre).
  *
  * Qui fait quoi ?
  *   Controller -> Model (extends Entity) -> ORM -> PDO -> base de données
@@ -504,6 +506,28 @@ abstract class Entity
             $relations[] = $relation;
         }
         return $relations;
+    }
+
+    /**
+     * Ajout (partie « My cinema by PiePHP ») : la connexion de l'entité,
+     * pour les classes filles.
+     *
+     * Pourquoi ? Un model a parfois besoin d'un AUTRE model, sur la MÊME
+     * base : FilmModel vérifie que le genre choisi existe (GenreModel) et
+     * efface l'historique du film supprimé (HistoriqueModel). L'attribut
+     * $db est privé (une clé "db" venue d'un formulaire ne doit jamais le
+     * remplacer, voir RESERVED) : cette méthode le prête sans l'exposer.
+     * Pertinence : sans elle, le second model prendrait la connexion par
+     * défaut (Core\Database), et un model créé avec une autre base (une
+     * base SQLite de test par exemple) mélangerait deux bases.
+     * "protected" : seuls les models y ont accès, pas les controllers ni
+     * les vues.
+     *
+     *   new GenreModel(['id' => 2], $this->getConnection());
+     */
+    protected function getConnection(): PDO
+    {
+        return $this->db;
     }
 
     /**

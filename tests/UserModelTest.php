@@ -123,7 +123,9 @@ return [
         $users->setEmail('a@b.c')->setPassword('motdepasse')->save();
 
         $user = $users->checkCredentials();
-        Assert::same(['id' => 1, 'email' => 'a@b.c'], $user);
+        // Mise à jour (partie « My cinema by PiePHP ») : la ligne contient
+        // aussi la relation 'historiques' (vide ici), jamais 'password'.
+        Assert::same(['id' => 1, 'email' => 'a@b.c', 'historiques' => []], $user);
     },
 
     'checkCredentials() refuse un mauvais mot de passe ou un email inconnu' => function () use ($model): void {
