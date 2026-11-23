@@ -33,7 +33,9 @@
         <nav>
             <a href="<?= BASE_URI ?>/">Accueil</a> |
             <a href="<?= BASE_URI ?>/user/register">Inscription</a> |
-            <a href="<?= BASE_URI ?>/user/login">Connexion</a>
+            <a href="<?= BASE_URI ?>/user/login">Connexion</a> |
+            <?php /* Ajout (étape "Le Model") : le profil de l'utilisateur connecté. */ ?>
+            <a href="<?= BASE_URI ?>/user/show">Profil</a>
         </nav>
     </header>
 

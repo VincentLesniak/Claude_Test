@@ -28,6 +28,8 @@ define('BASE_URI', '');
 
 require_once __DIR__ . '/Assert.php';
 require_once __DIR__ . '/Server.php';
+// Ajout (étape "Le Model") : une base SQLite en mémoire pour tester le model.
+require_once __DIR__ . '/TestDatabase.php';
 
 $passed = 0;
 $failed = 0;

@@ -66,10 +66,12 @@ jobs:
             "src/View/User/index.php"
             "src/View/User/register.php"
             "src/View/User/show.php"
+            # Étapes "Mise en pratique", "Le Model" et "Request"
+            "Core/Request.php"
+            "Core/Database.php"
+            "exemple.config.local.json"
 
             # Étapes suivantes (à décommenter quand elles sont codées) :
-            # "Core/Request.php"
-            # "Core/Database.php"
             # "Core/ORM.php"
             # "Core/Entity.php"
             # "Core/TemplateEngine.php"
@@ -154,6 +156,9 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
+          # Les tests du model utilisent une base SQLite en mémoire (pas
+          # besoin d'installer MySQL) : on s'assure que l'extension est là.
+          extensions: pdo_sqlite
 
       - name: Lancement des tests
         # tests/run.php découvre seul tous les fichiers tests/*Test.php.

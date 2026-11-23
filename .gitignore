@@ -23,3 +23,8 @@ Thumbs.db
 # Journaux (logs) et fichiers temporaires
 *.log
 /tmp/
+
+# Tes vrais identifiants de base de données (lu à la place de config.json,
+# voir Core/Database.php). Ne jamais commiter de mot de passe : un fichier
+# envoyé sur GitHub reste dans l'historique même après suppression.
+/config.local.json
