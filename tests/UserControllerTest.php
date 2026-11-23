@@ -44,7 +44,7 @@ return [
             $html = $submit('registerAction', ['email' => ' a@b.c ', 'password' => 'motdepasse']);
 
             Assert::contains('Votre compte a été créé', $html);
-            $user = (new UserModel($pdo))->readByEmail('a@b.c');
+            $user = (new UserModel([], $pdo))->readByEmail('a@b.c');
             Assert::true($user !== null, 'utilisateur absent de la base (l\'email doit être nettoyé par trim)');
             Assert::true(password_verify('motdepasse', $user['password']), 'mot de passe mal enregistré');
         } finally {

@@ -74,6 +74,30 @@ valeur est préparée, donc sans danger même si elle vient d'un formulaire. Un
 `WHERE` en chaîne (`'id > 3'`) est collé tel quel dans la requête : à
 réserver aux conditions écrites par toi, jamais à une saisie de visiteur.
 
+## Les entités (`Core/Entity.php`)
+
+Ajout (étape « Les entités ») : chaque model hérite de `Core\Entity`. Un
+objet model représente UNE ligne de sa table, chaque colonne devient un
+attribut public, et le CRUD n'est plus à réécrire dans chaque model :
+
+```php
+$user = new UserModel(['email' => 'a@b.c', 'password' => 'secret']);
+$user->save();                       // INSERT, $user->id est rempli
+
+$user = new UserModel(['id' => 3]);  // lit la ligne n°3
+$user->email = 'nouveau@b.c';
+$user->save();                       // UPDATE des colonnes modifiées
+$user->delete();                     // supprime la ligne n°3
+```
+
+La table est déduite du nom du model (`UserModel` -> `users`,
+`ArticleModel` -> `articles`). Pour un autre nom :
+`protected static $table = 'people';`.
+
+Attention : ne donne pas tout `getQueryParams()` à une entité sans
+réfléchir. Un `?id=3` ajouté à l'URL ferait charger (et `save()` modifier)
+la ligne n°3. Passe seulement les champs attendus.
+
 ## Tests
 
 Depuis la racine du projet : `php tests/run.php`
