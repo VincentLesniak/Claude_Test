@@ -13,6 +13,39 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
+## [0.5.0] - 2026-11-23
+
+Étape « Les entités » du sujet.
+
+### Ajouté
+- Classe abstraite `Core\Entity`, mère de tous les models. Son constructeur
+  prend un tableau associatif : soit les attributs du model, soit
+  `['id' => ...]`, auquel cas la ligne est lue avec l'ORM et remplace le
+  tableau. Chaque clé devient un attribut public (`$user->email`) ; `$id`
+  vaut `null` tant que l'entité n'est pas en base. Noms d'attributs vérifiés
+  (les attributs internes ne peuvent pas être écrasés).
+- `save()` : `INSERT` pour une nouvelle entité (remplit `$id`), `UPDATE` des
+  seules colonnes modifiées sinon. `delete()` sans argument supprime
+  l'entité elle-même.
+- CRUD commun hérité par les models : `create()`, `read()`, `update()`,
+  `delete()`, `readAll()` et `find()`, sans redonner le nom de la table.
+- `getTable()` déduit la table du nom du model (`UserModel` -> `users`),
+  modifiable avec `protected static $table`. Crochets `columns()` et
+  `prepareFields()` pour les règles propres à un model.
+- Tests des entités (`tests/EntityTest.php`).
+
+### Modifié
+- `Model\UserModel` étend `Core\Entity` : son CRUD est hérité, il garde sa
+  liste blanche, le hachage des mots de passe, `readByEmail()` et
+  `checkCredentials()`. `email` et `password` deviennent des attributs
+  publics. Le constructeur prend le tableau d'attributs en 1er paramètre :
+  `new UserModel(['email' => ...], $pdo)`.
+- Un utilisateur relu en base puis enregistré n'a plus son mot de passe
+  haché une deuxième fois.
+- L'inscription et la connexion créent le `UserModel` à partir d'un
+  tableau, comme dans l'exemple du sujet.
+- Job « File Structure Verification » de la CI : `Core/Entity.php` est requis.
+
 ## [0.4.0] - 2026-11-23
 
 Étape « Avancé - l'ORM » du sujet.
@@ -136,7 +169,8 @@ Controller » (méthode `render()` et vues).
 - Versionnage : fichier `VERSION`, ce journal, workflow de release
   automatique sur les tags `vX.Y.Z`.
 
-[Non publié]: https://github.com/VincentLesniak/Claude_Test/compare/0.4.0...dev
+[Non publié]: https://github.com/VincentLesniak/Claude_Test/compare/0.5.0...dev
+[0.5.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.5.0
 [0.4.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.4.0
 [0.3.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.3.0
 [0.2.0]: https://github.com/VincentLesniak/Claude_Test/releases/tag/0.2.0

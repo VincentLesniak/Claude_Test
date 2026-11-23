@@ -18,7 +18,7 @@ require_once dirname(__DIR__) . '/Core/autoload.php';
 $model = function (): UserModel {
     $pdo = TestDatabase::create();
     Database::setConnection(null);
-    return new UserModel($pdo);
+    return new UserModel([], $pdo);
 };
 
 /**
@@ -139,7 +139,7 @@ return [
         $pdo = TestDatabase::create();
         try {
             $id = (new UserModel())->create(['email' => 'a@b.c', 'password' => 'x']);
-            Assert::same('a@b.c', (new UserModel($pdo))->read($id)['email']);
+            Assert::same('a@b.c', (new UserModel([], $pdo))->read($id)['email']);
         } finally {
             Database::setConnection(null);
         }
