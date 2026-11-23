@@ -4,6 +4,7 @@
 namespace Model;
 
 use Core\Database;
+use Core\ORM;
 use InvalidArgumentException;
 use PDO;
 
@@ -34,6 +35,14 @@ use PDO;
  *   2. Mots de passe HACHÉS avec password_hash() : la base ne contient jamais
  *      le mot de passe lui-même, seulement une empreinte impossible à
  *      inverser. Même si la base fuite, les mots de passe restent secrets.
+ *
+ * Mise à jour (étape « Avancé - l'ORM ») : le model n'écrit plus de SQL
+ * lui-même. Il demande à Core\ORM ("crée cette ligne dans users", "lis la
+ * ligne n°3"...), et c'est l'ORM qui fabrique et exécute la requête. Le
+ * model reste le seul à parler de la table users, mais en PHP. Les deux
+ * règles de sécurité ci-dessus restent vraies : les requêtes préparées sont
+ * maintenant faites par l'ORM, et le hachage reste ici (c'est une règle
+ * propre aux utilisateurs, l'ORM n'a pas à la connaître).
  */
 class UserModel
 {
@@ -60,6 +69,14 @@ class UserModel
     private $db;
 
     /**
+     * Ajout (étape ORM) : le mini-ORM qui écrit les requêtes SQL pour ce
+     * model, branché sur la même connexion que $db.
+     *
+     * @var ORM
+     */
+    private $orm;
+
+    /**
      * L'email de l'utilisateur (sujet : attribut privé).
      *
      * @var string
@@ -84,6 +101,7 @@ class UserModel
     public function __construct(?PDO $db = null)
     {
         $this->db = $db ?? Database::getConnection();
+        $this->orm = new ORM($this->db);
     }
 
     /**
@@ -151,30 +169,16 @@ class UserModel
      *   INSERT INTO users (email, password) VALUES (:email, :password)
      * avec les valeurs ['email' => 'a@b.c', 'password' => '$2y$10$...'].
      *
+     * Mise à jour (étape ORM) : cette requête est maintenant écrite par
+     * ORM::create(). Les marqueurs (:email), prepare()/execute() et
+     * lastInsertId() y ont déménagé, avec leurs explications.
+     *
      * @param array $fields colonne => valeur
      * @return int l'id attribué par la base (AUTO_INCREMENT)
      */
     public function create(array $fields): int
     {
-        $fields = $this->prepareFields($fields);
-
-        $columns = array_keys($fields);
-        // Pour chaque colonne, un "marqueur" nommé : email -> :email.
-        $markers = array_map(function (string $column): string {
-            return ':' . $column;
-        }, $columns);
-
-        $sql = sprintf(
-            'INSERT INTO %s (%s) VALUES (%s)',
-            self::TABLE,
-            implode(', ', $columns),
-            implode(', ', $markers)
-        );
-
-        // prepare() envoie la requête avec ses marqueurs, execute() envoie
-        // les valeurs. lastInsertId() donne l'id que la base vient de créer.
-        $this->db->prepare($sql)->execute($fields);
-        return (int) $this->db->lastInsertId();
+        return $this->orm->create(self::TABLE, $this->prepareFields($fields));
     }
 
     /**
@@ -184,13 +188,9 @@ class UserModel
      */
     public function read(int $id): ?array
     {
-        $statement = $this->db->prepare('SELECT * FROM ' . self::TABLE . ' WHERE id = :id');
-        $statement->execute(['id' => $id]);
-
-        // fetch() renvoie false quand il n'y a aucune ligne : on le
-        // transforme en null, plus clair pour celui qui appelle read().
-        $user = $statement->fetch();
-        return $user === false ? null : $user;
+        // Mise à jour (étape ORM) : ORM::read() exécute le SELECT et
+        // transforme déjà le false de fetch() (aucune ligne) en null.
+        return $this->orm->read(self::TABLE, $id);
     }
 
     /**
@@ -199,24 +199,14 @@ class UserModel
      * Exemple : update(3, ['email' => 'new@b.c']) exécute
      *   UPDATE users SET email = :email WHERE id = :id
      *
+     * Mise à jour (étape ORM) : requête écrite par ORM::update(), qui
+     * renvoie true si rowCount() (le nombre de lignes touchées) est > 0.
+     *
      * @return bool true si une ligne a été modifiée
      */
     public function update(int $id, array $fields): bool
     {
-        $fields = $this->prepareFields($fields);
-
-        $assignments = array_map(function (string $column): string {
-            return $column . ' = :' . $column;
-        }, array_keys($fields));
-
-        $sql = sprintf('UPDATE %s SET %s WHERE id = :id', self::TABLE, implode(', ', $assignments));
-
-        $statement = $this->db->prepare($sql);
-        $statement->execute($fields + ['id' => $id]);
-
-        // rowCount() : le nombre de lignes touchées par la requête (0 si l'id
-        // n'existe pas).
-        return $statement->rowCount() > 0;
+        return $this->orm->update(self::TABLE, $id, $this->prepareFields($fields));
     }
 
     /**
@@ -226,9 +216,8 @@ class UserModel
      */
     public function delete(int $id): bool
     {
-        $statement = $this->db->prepare('DELETE FROM ' . self::TABLE . ' WHERE id = :id');
-        $statement->execute(['id' => $id]);
-        return $statement->rowCount() > 0;
+        // Mise à jour (étape ORM) : le DELETE est écrit par ORM::delete().
+        return $this->orm->delete(self::TABLE, $id);
     }
 
     /**
@@ -243,7 +232,9 @@ class UserModel
     {
         // query() suffit ici : la requête ne contient aucune valeur venant
         // du visiteur, il n'y a rien à préparer.
-        return $this->db->query('SELECT * FROM ' . self::TABLE . ' ORDER BY id')->fetchAll();
+        // Mise à jour (étape ORM) : c'est ORM::find() qui fait la requête.
+        // Sans paramètre, il prend toutes les lignes triées par "id ASC".
+        return $this->orm->find(self::TABLE);
     }
 
     /**
@@ -253,10 +244,12 @@ class UserModel
      */
     public function readByEmail(string $email): ?array
     {
-        $statement = $this->db->prepare('SELECT * FROM ' . self::TABLE . ' WHERE email = :email');
-        $statement->execute(['email' => $email]);
-        $user = $statement->fetch();
-        return $user === false ? null : $user;
+        // Mise à jour (étape ORM) : find() avec un WHERE sous forme de
+        // tableau, donc une valeur préparée (l'email vient du formulaire).
+        // LIMIT 1 : l'email est unique, une ligne suffit. find() renvoie une
+        // LISTE de lignes : on prend la première, ou null si la liste est vide.
+        $users = $this->orm->find(self::TABLE, ['WHERE' => ['email' => $email], 'LIMIT' => 1]);
+        return $users[0] ?? null;
     }
 
     /**

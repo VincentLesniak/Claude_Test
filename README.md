@@ -55,6 +55,25 @@ affichent « La base de données est indisponible » au lieu d'une erreur PHP.
 Les tests, eux, n'ont pas besoin de MySQL : ils utilisent une base SQLite en
 mémoire (`tests/TestDatabase.php`).
 
+## L'ORM (`Core/ORM.php`)
+
+Ajout (étape « Avancé - l'ORM ») : les models n'écrivent plus de SQL. Ils
+appellent `Core\ORM`, qui fabrique la requête et l'exécute :
+
+```php
+$orm = new ORM();
+$id = $orm->create('articles', ['titre' => 'Un titre', 'author' => 'Rodrigue']);
+$orm->read('articles', $id);                        // la ligne, ou null
+$orm->update('articles', $id, ['titre' => 'Autre']); // true / false
+$orm->find('articles', ['WHERE' => ['author' => 'Rodrigue'], 'ORDER BY' => 'id DESC', 'LIMIT' => 10]);
+$orm->delete('articles', $id);                      // true / false
+```
+
+Pour `find()`, préfère un `WHERE` en tableau (`['email' => $email]`) : la
+valeur est préparée, donc sans danger même si elle vient d'un formulaire. Un
+`WHERE` en chaîne (`'id > 3'`) est collé tel quel dans la requête : à
+réserver aux conditions écrites par toi, jamais à une saisie de visiteur.
+
 ## Tests
 
 Depuis la racine du projet : `php tests/run.php`
