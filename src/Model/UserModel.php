@@ -92,6 +92,15 @@ class UserModel extends Entity
      * On le déclare quand même ici (Entity pourrait le créer seul) pour
      * qu'on voie d'un coup d'œil les colonnes d'un utilisateur.
      *
+     * Pourquoi pas private ? Un attribut privé n'est visible QUE dans la
+     * classe qui le déclare, même pas dans sa classe mère. Or c'est Entity
+     * qui remplit cet attribut (constructeur) et le relit (save()) : avec
+     * private, elle ne le verrait pas. Et le controller doit pouvoir lire
+     * $user->id ou $user->email, ce que seul public permet.
+     * Le prix : n'importe qui peut écrire $user->email = 'pas un email'.
+     * Les vraies vérifications restent donc avant l'écriture en base :
+     * validate() dans le controller, prepareFields() ici.
+     *
      * @var string
      */
     public $email = '';
