@@ -8,6 +8,7 @@ namespace Controller;
 // "use" importe la classe mère Core\Controller : dans ce fichier, le mot
 // "Controller" seul désigne donc Core\Controller (et pas le namespace).
 use Core\Controller;
+use Model\HistoriqueModel;
 use Model\UserModel;
 use PDOException;
 use RuntimeException;
@@ -34,6 +35,15 @@ use RuntimeException;
  *     l'utilisateur, puis réaffichent la vue avec un message.
  * Le controller ne contient AUCUN SQL : c'est le rôle du model. Il ne
  * contient pas non plus de HTML : c'est le rôle des vues. Il "contrôle".
+ *
+ * Mise à jour (partie « My cinema by PiePHP ») : l'entité User du
+ * mini-site demande « inscription, connexion, voir son profil, modifier son
+ * profil, supprimer son profil ». Les trois premières existaient ; s'ajoutent :
+ *   - editAction()   /user/edit   : modifier son email et son mot de passe ;
+ *   - deleteAction() /user/delete : supprimer son compte (avec confirmation) ;
+ *   - le profil (showAction) affiche l'historique des films vus.
+ * startSession() et databaseError() ont déménagé dans Core\Controller, pour
+ * servir aussi aux controllers Film, Genre et Historique.
  */
 class UserController extends Controller
 {
@@ -171,11 +181,11 @@ class UserController extends Controller
      */
     public function logoutAction()
     {
-        $this->startSession();
-        $_SESSION = [];
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_destroy();
-        }
+        // Mise à jour (partie « My cinema by PiePHP ») : les lignes qui
+        // vidaient la session (démarrer la session, $_SESSION = [], puis
+        // session_destroy()) sont dans endSession(), car deleteAction() fait
+        // la même chose après avoir supprimé le compte.
+        $this->endSession();
 
         $this->render('login', ['title' => 'Connexion', 'success' => 'Vous êtes déconnecté.']);
     }
@@ -210,10 +220,134 @@ class UserController extends Controller
             }
         }
 
+        // Mise à jour (partie « My cinema by PiePHP ») : pour un vrai
+        // profil, on ajoute l'historique des films vus. Chaque ligne contient
+        // l'entrée 'film' (relation 'has one film' de HistoriqueModel) : la
+        // vue affiche le titre du film sans autre requête.
+        if (!$scope['example'] && !isset($scope['error'])) {
+            try {
+                $scope['historiques'] = (new HistoriqueModel())->findForUser((int) $user['id']);
+            } catch (PDOException | RuntimeException $e) {
+                $scope['error'] = $this->databaseError();
+            }
+        }
+
         // On ne transmet à la vue que ce qu'elle affiche : jamais l'empreinte
         // du mot de passe, même hachée.
         $scope['user'] = ['id' => $user['id'], 'email' => $user['email']];
         $this->render('show', $scope);
+    }
+
+    /**
+     * Ajout (partie « My cinema by PiePHP ») : /user/edit, modifier son
+     * profil (email et, si on le souhaite, mot de passe).
+     *
+     * Le mot de passe est FACULTATIF ici : laissé vide, il ne change pas.
+     * L'utilisateur est lu en base (new UserModel(['id' => ...])), puis on
+     * remplace ses attributs. Entity::save() n'envoie que les colonnes
+     * modifiées : un mot de passe non retapé n'est donc jamais renvoyé (ni
+     * haché une seconde fois). Un nouveau mot de passe est haché par
+     * UserModel::prepareFields(), comme à l'inscription.
+     *
+     * L'id vient de la SESSION, jamais de l'URL : on ne peut modifier que
+     * SON propre profil.
+     *
+     * Pourquoi ? Demandé par le sujet (« Modifier son profil »).
+     * Pertinence : on réutilise validate() et readByEmail() de
+     * l'inscription ; seule différence, l'email peut rester le même (ce
+     * n'est pas un doublon s'il appartient à l'utilisateur lui-même).
+     */
+    public function editAction()
+    {
+        if (!$this->requireLogin()) {
+            return;
+        }
+        $scope = ['title' => 'Modifier mon profil'];
+
+        try {
+            $user = new UserModel(['id' => $this->currentUserId()]);
+            if ($user->id === null) {
+                // Le compte a disparu (supprimé ailleurs) : on oublie la session.
+                $this->endSession();
+                $this->redirect('/user/login');
+                return;
+            }
+            $scope['email'] = $user->email;
+
+            if ($this->request->isPost()) {
+                $email = $this->postValue('email');
+                $password = $this->postValue('password');
+                $scope['email'] = $email;
+                // Le 3e paramètre : le mot de passe n'est pas obligatoire ici.
+                $scope['error'] = $this->validate($email, $password, false);
+
+                $other = $scope['error'] === null ? $user->readByEmail($email) : null;
+                if ($other !== null && (int) $other['id'] !== $user->id) {
+                    $scope['error'] = 'Un compte existe déjà avec cet email.';
+                }
+
+                if ($scope['error'] === null) {
+                    $user->email = $email;
+                    if ($password !== '') {
+                        $user->password = $password;
+                    }
+                    $user->save();
+                    $this->flash('success', 'Votre profil a été modifié.');
+                    $this->redirect('/user/show');
+                    return;
+                }
+            }
+        } catch (PDOException | RuntimeException $e) {
+            $scope['error'] = $this->databaseError();
+        }
+
+        $this->render('edit', $scope);
+    }
+
+    /**
+     * Ajout (partie « My cinema by PiePHP ») : /user/delete, supprimer son
+     * compte.
+     *
+     *   GET  : une page de confirmation (« Êtes-vous sûr ? ») ;
+     *   POST : le bouton de cette page, qui supprime vraiment.
+     * Supprimer un compte est définitif : on ne le fait jamais sur un
+     * simple lien (GET), et on laisse une chance de changer d'avis.
+     *
+     * L'historique du membre est supprimé avant lui. On le trouve grâce à
+     * la relation 'has many historiques' de UserModel : $user->historiques
+     * contient toutes ses lignes. Ensuite, la session est vidée (le membre
+     * n'existe plus) et on affiche la page de connexion avec un message,
+     * comme logoutAction().
+     *
+     * Pourquoi ? Demandé par le sujet (« Supprimer son profil »).
+     * Pertinence : sans effacer l'historique d'abord, ses lignes
+     * désigneraient un utilisateur qui n'existe plus (MySQL les efface
+     * aussi grâce à ON DELETE CASCADE, mais SQLite non, par défaut).
+     */
+    public function deleteAction()
+    {
+        if (!$this->requireLogin()) {
+            return;
+        }
+        if (!$this->request->isPost()) {
+            $this->render('delete', ['title' => 'Supprimer mon compte']);
+            return;
+        }
+
+        try {
+            $user = new UserModel(['id' => $this->currentUserId()]);
+            $historiques = new HistoriqueModel();
+            foreach ($user->historiques ?? [] as $historique) {
+                $historiques->delete((int) $historique['id']);
+            }
+            $user->delete();
+        } catch (PDOException | RuntimeException $e) {
+            $this->render('delete', ['title' => 'Supprimer mon compte', 'error' => $this->databaseError()]);
+            return;
+        }
+
+        $this->endSession();
+        $this->render('login', ['title' => 'Connexion', 'success' => 'Votre compte a été supprimé.']);
     }
 
     /**
@@ -222,12 +356,22 @@ class UserController extends Controller
      * filter_var(..., FILTER_VALIDATE_EMAIL) renvoie false si le texte n'a
      * pas la forme d'une adresse email.
      *
+     * Mise à jour (partie « My cinema by PiePHP ») : un 3e paramètre,
+     * facultatif. Sur la page « Modifier mon profil », le mot de passe peut
+     * rester vide (il ne change pas) : $passwordRequired vaut alors false,
+     * et la longueur n'est vérifiée que si un mot de passe a été tapé.
+     * L'inscription, elle, appelle toujours validate() avec deux arguments :
+     * true par défaut, rien ne change pour elle.
+     *
      * @return string|null le message d'erreur, ou null si tout est bon
      */
-    private function validate(string $email, string $password): ?string
+    private function validate(string $email, string $password, bool $passwordRequired = true): ?string
     {
         if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
             return 'Adresse email invalide.';
+        }
+        if (!$passwordRequired && $password === '') {
+            return null;
         }
         if (strlen($password) < 8) {
             return 'Le mot de passe doit contenir au moins 8 caractères.';
@@ -242,6 +386,27 @@ class UserController extends Controller
     // Mise à jour (partie « My cinema by PiePHP ») : elle a déménagé dans
     // Core\Controller, en "protected", avec ses explications : les
     // controllers Film, Genre et Historique en ont besoin aussi.
+
+    /**
+     * Ajout (partie « My cinema by PiePHP ») : vide la session (le membre
+     * n'est plus connecté).
+     *
+     * $_SESSION = [] efface les données tout de suite (pour la fin de cette
+     * requête), session_destroy() supprime le fichier de session sur le
+     * serveur (pour les suivantes).
+     *
+     * Pourquoi ? logoutAction() et deleteAction() (et editAction(), si le
+     * compte a disparu) déconnectent le membre de la même façon.
+     * Pertinence : les trois lignes sont écrites une seule fois.
+     */
+    private function endSession(): void
+    {
+        $this->startSession();
+        $_SESSION = [];
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+    }
 
     // databaseError() renvoyait le message affiché quand la base ne répond
     // pas, sans le détail de l'erreur (il pourrait renseigner sur le
