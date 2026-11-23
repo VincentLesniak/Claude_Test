@@ -1,0 +1,65 @@
+# -----------------------------------------------------------------------------
+# Release
+# -----------------------------------------------------------------------------
+# Se déclenche quand on pousse un tag de version, par exemple :
+#     git tag -a v0.1.0 -m "Version 0.1.0" && git push origin v0.1.0
+#
+# Le workflow vérifie que le tag correspond au fichier VERSION, relance les
+# tests, puis crée la "Release" GitHub (page de téléchargement de la
+# version) avec le texte du CHANGELOG correspondant.
+# -----------------------------------------------------------------------------
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+# Créer une release demande le droit d'écrire dans le dépôt.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publication de la release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v5
+
+      - name: Le tag correspond-il au fichier VERSION ?
+        # GITHUB_REF_NAME vaut le nom du tag, ex. "v0.1.0".
+        # ${GITHUB_REF_NAME#v} retire le "v" du début -> "0.1.0".
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          file="$(cat VERSION)"
+          if [ "$tag" != "$file" ]; then
+            echo "::error::Le tag v$tag ne correspond pas au fichier VERSION ($file)."
+            exit 1
+          fi
+
+      - name: Installation de PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Tests
+        run: php tests/run.php
+
+      - name: Extraction des notes de version depuis le CHANGELOG
+        # awk lit le CHANGELOG ligne par ligne : il commence à afficher après
+        # le titre "## [X.Y.Z]" et s'arrête au titre de section suivant.
+        run: |
+          version="$(cat VERSION)"
+          awk -v v="## [$version]" '
+            index($0, v) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found && /^\[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          cat release-notes.md
+
+      - name: Création de la release GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --title "PiePHP $GITHUB_REF_NAME" --notes-file release-notes.md
