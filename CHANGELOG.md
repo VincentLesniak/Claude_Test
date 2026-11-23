@@ -13,6 +13,11 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
+### Ajouté
+- README : section « Lancer le site (Windows + XAMPP) » (créer la base avec
+  le `mysql` de XAMPP, lancer le serveur intégré de PHP depuis le dossier
+  du projet, vérifier la configuration).
+
 ## [1.0.0] - 2026-11-23
 
 Partie « My cinema by PiePHP » du sujet : le sujet est complet, c'est la

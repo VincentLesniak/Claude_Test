@@ -30,6 +30,64 @@ dossier parent du projet : `php -S localhost:8000` puis
 http://localhost:8000/PiePHP/ (attention : le serveur intégré ignore le
 `.htaccess`).
 
+Mise à jour (partie « My cinema by PiePHP ») : lance plutôt le serveur
+intégré depuis le dossier DU PROJET, comme dans « Lancer le site » ci-dessous.
+Depuis le dossier parent, une adresse comme `/PiePHP/film/show` n'est pas
+renvoyée vers le `index.php` du projet (le serveur intégré cherche un
+`index.php` à la racine qu'on lui donne), et seule la page d'accueil marche.
+
+## Lancer le site (Windows + XAMPP)
+
+Ajout (partie « My cinema by PiePHP ») : la marche à suivre complète, de la
+base de données à la page d'accueil. Les commandes sont à taper dans **Git
+Bash**, depuis le dossier du projet (celui qui contient `index.php` et
+`database.sql`).
+
+1. **Démarrer MySQL** : ouvre le *XAMPP Control Panel* et clique sur
+   **Start** en face de **MySQL** (Apache n'est pas nécessaire avec la
+   méthode 3 ci-dessous).
+
+2. **Créer la base et les tables** (à faire une fois, puis à refaire si
+   `database.sql` change ; les tables existantes sont gardées) :
+   ```bash
+   /c/xampp/mysql/bin/mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS piephp CHARACTER SET utf8mb4"
+   /c/xampp/mysql/bin/mysql -u root -p piephp < database.sql
+   ```
+   - `mysql` n'est pas dans le PATH de Windows : on donne donc son chemin
+     complet (`/c/xampp/...` est la façon d'écrire `C:\xampp\...` dans
+     Git Bash). Sinon, Git Bash répond `mysql: command not found`.
+   - `-p` fait demander le mot de passe. Sous XAMPP, celui de `root` est
+     **vide** : appuie simplement sur Entrée. Rien ne s'affiche si tout
+     s'est bien passé.
+   - Sans terminal : http://localhost/phpmyadmin (Apache doit alors être
+     démarré), base `piephp`, onglet **Importer**, fichier `database.sql`.
+
+3. **Lancer le serveur** :
+   ```bash
+   /c/xampp/php/php -S localhost:8000
+   ```
+   puis ouvre **http://localhost:8000/** dans le navigateur. Le terminal
+   reste occupé tant que le serveur tourne ; **Ctrl+C** l'arrête.
+   Le serveur intégré de PHP ignore le `.htaccess`, mais envoie vers
+   `index.php` toute adresse qui ne correspond à aucun fichier : le
+   routage `/controller/action` fonctionne donc.
+
+4. **La connexion à la base** : `config.json` contient déjà les réglages
+   par défaut de XAMPP (`root`, mot de passe vide, base `piephp`). Si tu
+   as un `config.local.json`, c'est lui qui est lu à la place : vérifie
+   ses valeurs. Si la page affiche « La base de données est
+   indisponible », MySQL n'est pas démarré ou ces réglages sont faux.
+
+Pour l'utiliser avec Apache (http://localhost/PiePHP/), le projet doit être
+dans `C:\xampp\htdocs\PiePHP`, et le `RewriteBase` du `.htaccess` doit
+correspondre au nom de ce dossier.
+
+Parcours conseillé pour tout essayer : cliquer sur un film (détail avec son
+genre), s'inscrire puis se connecter, ajouter / modifier un film, cliquer
+sur « J'ai vu ce film », retrouver le film dans son profil puis l'en
+retirer, gérer les genres (la suppression d'un genre qui a des films est
+refusée), modifier son profil, puis supprimer son compte.
+
 ## Configuration (`config.json`)
 
 Les paramètres de connexion à la base de données sont dans `config.json`
