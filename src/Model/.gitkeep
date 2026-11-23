@@ -1,0 +1,3 @@
+# Git ne versionne pas les dossiers vides : ce fichier sert uniquement à
+# conserver ce dossier dans le dépôt. Tu pourras le supprimer dès qu'un vrai
+# fichier y sera ajouté.

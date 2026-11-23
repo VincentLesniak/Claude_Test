@@ -1,0 +1,25 @@
+# ---------------------------------------------------------------------------
+# .gitignore : les fichiers et dossiers que Git doit ignorer (jamais commités)
+# ---------------------------------------------------------------------------
+# Une ligne = un motif. "/" à la fin = un dossier, "*" = n'importe quels
+# caractères. Un fichier déjà suivi par Git n'est pas concerné : il faut
+# d'abord le retirer avec "git rm --cached <fichier>".
+
+# Dépendances installées par Composer (on les réinstalle avec composer install)
+/vendor/
+
+# Outil de vérification PSR-12 téléchargé par le CI ou en local
+phpcs.phar
+
+# Fichiers de configuration propres à ton éditeur
+.idea/
+.vscode/
+*.swp
+
+# Fichiers créés automatiquement par le système d'exploitation
+.DS_Store
+Thumbs.db
+
+# Journaux (logs) et fichiers temporaires
+*.log
+/tmp/

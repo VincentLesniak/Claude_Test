@@ -1,0 +1,156 @@
+# -----------------------------------------------------------------------------
+# PiePHP Strict CI
+# -----------------------------------------------------------------------------
+# GitHub Actions exécute ce fichier à chaque push et à chaque pull request.
+# Chaque "job" tourne sur une machine virtuelle neuve fournie par GitHub
+# (ubuntu-latest) : gratuit pour un dépôt public, 2000 min/mois en privé.
+# Les jobs sont indépendants et tournent en parallèle : si l'un échoue, les
+# autres donnent quand même leur résultat.
+# -----------------------------------------------------------------------------
+name: PiePHP Strict CI
+
+on:
+  push:
+  pull_request:
+
+# Si on pousse deux fois de suite, on annule l'exécution précédente (inutile).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Les fichiers attendus par le sujet sont-ils bien présents ?
+  # ---------------------------------------------------------------------------
+  structure:
+    name: File Structure Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v5
+
+      - name: Vérification des fichiers requis
+        # La liste suit l'avancement du projet : quand une étape ajoute un
+        # fichier obligatoire, on l'ajoute ici. Les fichiers des étapes
+        # suivantes sont listés en commentaire, à décommenter au fur et à
+        # mesure.
+        run: |
+          REQUIRED_FILES=(
+            # Étape 1 : arborescence et fichiers racine
+            ".gitignore"
+            ".htaccess"
+            "config.json"
+            "index.php"
+            "README.md"
+            "robots.txt"
+            # Étape 2 : vue de connexion
+            "src/View/User/login.php"
+            # Étape 3 : lancement de l'application
+            "Core/autoload.php"
+            "Core/Core.php"
+            # Tests automatiques
+            "tests/run.php"
+
+            # Étapes suivantes (à décommenter quand elles sont codées) :
+            # "Core/Router.php"
+            # "Core/Controller.php"
+            # "src/routes.php"
+            # "src/Controller/AppController.php"
+            # "src/Controller/UserController.php"
+            # "src/Model/UserModel.php"
+            # "src/View/index.php"
+            # "src/View/App/index.php"
+            # "src/View/Error/404.php"
+            # "src/View/User/index.php"
+            # "src/View/User/register.php"
+            # "src/View/User/show.php"
+            # "Core/Request.php"
+            # "Core/Database.php"
+            # "Core/ORM.php"
+            # "Core/Entity.php"
+            # "Core/TemplateEngine.php"
+            # "src/View/Flash/default.php"
+            # "src/View/Flash/error.php"
+            # "src/View/Flash/success.php"
+          )
+
+          # On liste TOUS les fichiers manquants avant d'échouer, au lieu de
+          # s'arrêter au premier : plus pratique pour corriger d'un coup.
+          missing=0
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "::error file=$file::Fichier requis manquant : $file"
+              missing=$((missing + 1))
+            fi
+          done
+
+          if [ "$missing" -gt 0 ]; then
+            echo "$missing fichier(s) manquant(s)." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "Structure : ${#REQUIRED_FILES[@]} fichiers requis, tous présents." >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # 2. Aucun fichier PHP ne contient d'erreur de syntaxe.
+  # ---------------------------------------------------------------------------
+  linting:
+    name: PHP Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v5
+
+      - name: Installation de PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: php -l sur chaque fichier
+        # find ... -print0 | xargs -0 gère les noms de fichiers avec espaces.
+        # -n1 : un fichier par appel de php -l (le premier en erreur fait
+        # échouer xargs, donc le job).
+        run: |
+          find . -type f -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+          echo "Linting : aucune erreur de syntaxe." >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # 3. Le code respecte la norme PSR-12.
+  # ---------------------------------------------------------------------------
+  psr12:
+    name: PSR-12 Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v5
+
+      - name: Installation de PHP et de PHP_CodeSniffer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: phpcs
+
+      - name: Vérification PSR-12
+        # Les vues (src/View/) mélangent HTML et PHP : PSR-12 ne s'y applique
+        # pas, on les ignore. webroot/ ne contient que des fichiers statiques.
+        run: |
+          phpcs --standard=PSR12 --colors --ignore=src/View/,webroot/ Core/ src/ tests/ index.php
+          echo "PSR-12 : norme respectée." >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # 4. Les tests automatiques (dossier tests/) passent.
+  # ---------------------------------------------------------------------------
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v5
+
+      - name: Installation de PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Lancement des tests
+        # tests/run.php découvre seul tous les fichiers tests/*Test.php.
+        run: php tests/run.php
