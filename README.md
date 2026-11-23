@@ -51,6 +51,6 @@ n'accepte pas les commentaires, d'où cette explication ici :
   (les vues de `src/View/` sont ignorées). Pour le lancer en local :
   `php phpcs.phar --standard=PSR12 --ignore=src/View/,webroot/ Core/ src/ index.php`
 
-Attention : les jobs utilisent `runs-on: self-hosted`, il faut donc un
-runner auto-hébergé enregistré sur le dépôt (Settings > Actions > Runners),
-sinon ils restent en attente.
+Les jobs tournent sur `ubuntu-latest`, une machine virtuelle fournie par
+GitHub. C'est gratuit pour un dépôt public, et un dépôt privé dispose de
+2000 minutes gratuites par mois (largement suffisant ici).

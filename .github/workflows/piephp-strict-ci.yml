@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   security:
     name: Security Check
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout of the code
       uses: actions/checkout@v5
@@ -14,7 +14,7 @@ jobs:
 
   structure:
       name: File Structure Verification
-      runs-on: self-hosted
+      runs-on: ubuntu-latest
       steps:
       - name: Code checkout
         uses: actions/checkout@v5
@@ -65,7 +65,7 @@ jobs:
 
   linting:
     name: PHP Linting
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     container:
       image: php:latest
     steps:
@@ -85,7 +85,7 @@ jobs:
 
   psr12:
     name: PSR-12 Validation
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     container:
       image: php:latest
     steps:

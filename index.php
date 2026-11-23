@@ -1,10 +1,11 @@
 <?php
 
 // phpcs:disable PSR1.Files.SideEffects
-// PSR-1 demande qu'un fichier, soit déclare des symboles (classes, constantes),
-// soit exécute du code, mais pas les deux. index.php fait les deux (define()
-// puis $app->run()) : c'est normal pour un point d'entrée, on désactive donc
-// cette règle uniquement pour ce fichier.
+// PSR-1 demande qu'un fichier soit SOIT déclaratif (il définit des
+// constantes, classes, fonctions), SOIT exécutant (il "fait" quelque
+// chose : echo, require, new...). Or define() compte comme une
+// déclaration, et ce fichier lance aussi l'application. C'est normal pour
+// un point d'entrée : on désactive donc cette règle pour ce fichier seul.
 
 /**
  * index.php : point d'entrée UNIQUE de l'application.
