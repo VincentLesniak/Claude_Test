@@ -1,21 +1,7 @@
-# ---------------------------------------------------------------------------
-# robots.txt
-# ---------------------------------------------------------------------------
-# Ce fichier s'adresse aux robots d'indexation (Googlebot, Bingbot...).
-# Avant d'explorer un site, un robot "poli" lit http://monsite/robots.txt
-# pour savoir quelles pages il a le droit de parcourir et d'indexer.
-#
-# À retenir pour la soutenance :
-#  - c'est une CONVENTION, pas une protection : un robot malveillant peut
-#    l'ignorer. La vraie sécurité, c'est le .htaccess (et le code PHP).
-#  - il doit être à la racine du site, d'où sa place à côté de index.php.
-#  - "User-agent" désigne le robot visé (* = tous les robots).
-#  - "Disallow" liste les chemins interdits, "Allow" les chemins autorisés.
-# ---------------------------------------------------------------------------
-
+# robots.txt : fichier lu par les robots des moteurs de recherche (Googlebot...)
+# AVANT d'explorer le site. Il leur indique ce qu'ils ont le droit d'indexer.
+# Attention : ce n'est pas une protection, juste une consigne que les robots
+# polis respectent. La vraie sécurité, c'est le .htaccess.
 User-agent: *
-# On interdit l'exploration du code du framework et de l'application :
 Disallow: /Core/
 Disallow: /src/
-# Les ressources publiques (images, CSS, JS) peuvent être explorées :
-Allow: /webroot/

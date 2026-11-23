@@ -1,36 +1,36 @@
-# ---------------------------------------------------------------------------
-# .htaccess : configuration d'Apache pour ce dossier (et ses sous-dossiers)
-# ---------------------------------------------------------------------------
-# Apache lit ce fichier à chaque requête. Il permet de changer son
-# comportement sans toucher à la configuration globale du serveur.
-# Prérequis : le module mod_rewrite activé (sudo a2enmod rewrite) et
-# "AllowOverride All" pour ce dossier dans la config du VirtualHost.
+# =============================================================================
+#  .htaccess : configuration Apache du "front controller"
+# =============================================================================
+#  Idée générale : TOUTES les requêtes passent par index.php, qui décide quoi
+#  afficher (c'est le principe du "front controller", un point d'entrée unique).
+#  Seuls quelques fichiers peuvent être servis directement par Apache :
+#    - ce qui est dans webroot/ (CSS, JS, images : ce que le navigateur doit charger)
+#    - index.php lui-même
+#    - robots.txt (lu par les moteurs de recherche)
+#  Tout le reste (Core/, src/, .git/, un dossier, une URL inventée...) est
+#  renvoyé vers index.php : le visiteur ne peut plus "se balader" dans le projet.
 #
-# !! Les règles ci-dessous sont VOLONTAIREMENT commentées pour l'instant. !!
-# Elles correspondent à la partie "Sécurité de l'application" du sujet.
-# Si on les activait dès maintenant, toute URL serait redirigée vers
-# index.php, et on ne pourrait plus ouvrir src/View/User/login.php pour
-# tester la première étape. On les activera (en retirant les "#") plus tard.
-# ---------------------------------------------------------------------------
+#  Prérequis : le module mod_rewrite doit être activé (sudo a2enmod rewrite)
+#  et le VirtualHost doit autoriser les .htaccess (AllowOverride All).
+# =============================================================================
 
-# 1) Active le moteur de réécriture d'URL.
-# RewriteEngine On
+# Active le moteur de réécriture d'URL d'Apache.
+RewriteEngine On
 
-# 2) Chemin de base du projet vu depuis le navigateur (après localhost).
-#    Ici le projet est dans /var/www/html/PiePHP -> http://localhost/PiePHP/
-#    À adapter selon ton installation !
-# RewriteBase /PiePHP/
+# Chemin du projet vu depuis l'URL (http://localhost/PiePHP/ -> /PiePHP/).
+# À ADAPTER si ton projet n'est pas dans un dossier "PiePHP" à la racine web.
+RewriteBase /PiePHP/
 
-# 3) Conditions (RewriteCond) : la règle suivante ne s'applique que si...
-#    ... le fichier demandé n'existe pas sur le disque  [OR]  ...
-# RewriteCond %{REQUEST_FILENAME} !-f [OR]
-#    ... l'URL ne fait PAS partie de la liste blanche : webroot/, index.php
-#    et robots.txt. (le "!" veut dire "ne correspond pas").
-# RewriteCond %{REQUEST_URI} !^/PiePHP/(webroot/.+|index\.php|robots\.txt)$
+# Les deux conditions ci-dessous sont reliées par un OU ([OR]) :
+# on réécrit vers index.php SI le fichier demandé n'existe pas (!-f)...
+RewriteCond %{REQUEST_FILENAME} !-f [OR]
+# ... OU SI l'URL ne fait pas partie de la liste blanche autorisée.
+#   webroot/.+   : un fichier dans webroot (".+" = au moins un caractère,
+#                  donc "webroot/" seul, qui listerait le dossier, est refusé)
+#   index\.php   : le point est échappé car "." veut dire "n'importe quel caractère"
+RewriteCond %{REQUEST_URI} !^/PiePHP/(webroot/.+|index\.php|robots\.txt)$
 
-# 4) Règle : n'importe quelle URL (^) est envoyée vers index.php.
-#    QSA = on garde les paramètres ?a=b de l'URL d'origine.
-#    L   = "Last", on arrête de lire les règles suivantes.
-#    Résultat : index.php devient le point d'entrée UNIQUE de l'application
-#    (pattern "Front Controller"), personne ne peut lire Core/ ou src/.
-# RewriteRule ^ index.php [QSA,L]
+# La règle : "^" correspond à n'importe quelle URL, on la remplace par index.php.
+#   QSA (Query String Append) : on garde les paramètres ?a=1&b=2 de l'URL
+#   L   (Last)                : on arrête de lire les règles suivantes
+RewriteRule ^ index.php [QSA,L]

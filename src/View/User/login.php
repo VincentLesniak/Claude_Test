@@ -1,11 +1,16 @@
 <?php
 /**
  * Vue : formulaire de connexion (src/View/User/login.php)
+ * Affichée par UserController::loginAction(), URL /user/login.
  *
  * Dans le modèle MVC, une VUE ne contient que de l'affichage : pas de
  * requête SQL, pas de logique métier. Ici c'est encore une page HTML
  * complète, car nous n'avons pas de "layout" commun (il viendra plus tard
  * avec la méthode render() du Controller).
+ *
+ * Mise à jour (étape "Le Controller") : le layout est arrivé. Ce fichier
+ * n'est plus une page complète : le <!doctype>, le <head> et le <title> sont
+ * dans src/View/index.php, ajouté autour par render().
  *
  * Fonctionnement du formulaire :
  *  - method="post" : les données sont envoyées dans le CORPS de la requête
@@ -15,42 +20,34 @@
  *  - action="/PiePHP/index.php" : l'URL qui va RECEVOIR les données.
  *    Le chemin dépend de l'endroit où est installé le projet
  *    (ici /var/www/html/PiePHP -> http://localhost/PiePHP/).
+ *    Mise à jour (étape "Le Controller") : l'action est maintenant
+ *    "<?= BASE_URI ?>/user/login", c'est-à-dire loginAction elle-même (elle
+ *    saura traiter les données quand le model sera prêt). BASE_URI vaut
+ *    "/PiePHP" chez toi (voir index.php) : plus besoin d'écrire le chemin en dur.
  *  - l'attribut name="..." de chaque champ devient la CLÉ dans $_POST :
  *    name="email" -> $_POST['email'].
  *
  * Pour vérifier que la page est valide W3C : https://validator.w3.org/
+ * (colle le code source de la page affichée, layout compris).
  */
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <!-- Encodage des caractères : indispensable pour les accents. -->
-    <meta charset="UTF-8">
-    <!-- Adapte l'affichage à la largeur de l'écran (mobile). -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Le <title> est obligatoire pour que la page soit valide W3C. -->
-    <title>PiePHP - Connexion</title>
-</head>
-<body>
-    <h1>Connexion</h1>
+<h1>Connexion</h1>
 
-    <form method="post" action="/PiePHP/index.php">
-        <!-- Le "for" du label correspond à l'"id" du champ : cliquer sur le
-             texte place le curseur dans le champ (accessibilité). -->
-        <p>
-            <label for="email">Email</label>
-            <!-- type="email" : le navigateur vérifie le format x@y.z. -->
-            <input type="email" id="email" name="email" required>
-        </p>
-        <p>
-            <label for="password">Mot de passe</label>
-            <!-- type="password" : les caractères sont masqués à l'écran,
-                 mais attention, ils circulent en clair sans HTTPS. -->
-            <input type="password" id="password" name="password" required>
-        </p>
-        <p>
-            <button type="submit">Se connecter</button>
-        </p>
-    </form>
-</body>
-</html>
+<form method="post" action="<?= BASE_URI ?>/user/login">
+    <!-- Le "for" du label correspond à l'"id" du champ : cliquer sur le
+         texte place le curseur dans le champ (accessibilité). -->
+    <p>
+        <label for="email">Email</label>
+        <!-- type="email" : le navigateur vérifie le format x@y.z. -->
+        <input type="email" id="email" name="email" required>
+    </p>
+    <p>
+        <label for="password">Mot de passe</label>
+        <!-- type="password" : les caractères sont masqués à l'écran,
+             mais attention, ils circulent en clair sans HTTPS. -->
+        <input type="password" id="password" name="password" required>
+    </p>
+    <p>
+        <button type="submit">Se connecter</button>
+    </p>
+</form>

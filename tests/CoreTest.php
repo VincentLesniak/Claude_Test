@@ -1,21 +1,72 @@
 <?php
 
 /**
- * Tests de la classe Core\Core.
+ * Tests de la classe Core\Core : run() doit confier la requête au bon
+ * controller selon l'URL.
+ *
+ * Ici on n'utilise pas de serveur HTTP : on simule la requête en remplissant
+ * nous-mêmes $_SERVER['REQUEST_URI'] et $_GET, comme le ferait Apache.
  */
 
 use Tests\Assert;
 
 require_once dirname(__DIR__) . '/Core/autoload.php';
 
-return [
-    'run() affiche "Core\Core [OK]"' => function (): void {
-        // ob_start() "capture" tout ce qui est affiché (echo) au lieu de
-        // l'envoyer à l'écran ; ob_get_clean() le récupère sous forme de texte.
-        ob_start();
-        (new Core\Core())->run();
-        $output = ob_get_clean();
+/**
+ * Lance Core::run() pour une URL donnée et renvoie ce qui a été affiché.
+ * ob_start() "capture" les echo, ob_get_clean() les récupère en texte.
+ */
+$run = function (string $uri, array $get = []): string {
+    $_SERVER['REQUEST_URI'] = $uri;
+    $_GET = $get;
+    ob_start();
+    (new Core\Core())->run();
+    return ob_get_clean();
+};
 
-        Assert::same('Core\Core [OK]' . PHP_EOL, $output);
+return [
+    '"/" appelle AppController::indexAction()' => function () use ($run): void {
+        Assert::contains('<h1>Bienvenue sur PiePHP</h1>', $run('/'));
+    },
+
+    '"/user/add" appelle UserController::addAction()' => function () use ($run): void {
+        Assert::contains('<h1>Inscription</h1>', $run('/user/add'));
+    },
+
+    '"/user" utilise l\'action par défaut index' => function () use ($run): void {
+        Assert::contains('<h1>Utilisateurs</h1>', $run('/user'));
+    },
+
+    'les "/" en trop et les ?paramètres sont ignorés' => function () use ($run): void {
+        Assert::contains('<h1>Inscription</h1>', $run('/user/add/?x=1'));
+    },
+
+    '"?c=user&a=add" fonctionne aussi' => function () use ($run): void {
+        $output = $run('/', ['c' => 'user', 'a' => 'add']);
+        Assert::contains('<h1>Inscription</h1>', $output);
+    },
+
+    'une route déclarée dans src/routes.php est prioritaire (/inscription)' => function () use ($run): void {
+        Assert::contains('<h1>Inscription</h1>', $run('/inscription'));
+    },
+
+    '"/user/login" affiche la vue login dans le layout' => function () use ($run): void {
+        $html = $run('/user/login');
+        Assert::contains('<!doctype html>', $html, 'le layout est absent');
+        Assert::contains('<h1>Connexion</h1>', $html, 'la vue est absente');
+    },
+
+    'un controller inconnu affiche la 404' => function () use ($run): void {
+        Assert::contains('<h1>404</h1>', $run('/nimportequoi'));
+    },
+
+    'une action inconnue affiche la 404' => function () use ($run): void {
+        Assert::contains('<h1>404</h1>', $run('/user/supprimer'));
+    },
+
+    'un nom avec des caractères spéciaux est refusé (404)' => function () use ($run): void {
+        Assert::contains('<h1>404</h1>', $run('/..%2F..%2Fetc/passwd'));
+        Assert::contains('<h1>404</h1>', $run('/', ['c' => '../Core/Core']));
+        Assert::contains('<h1>404</h1>', $run('/', ['c' => ['tableau']]));
     },
 ];
