@@ -98,6 +98,53 @@ Attention : ne donne pas tout `getQueryParams()` à une entité sans
 réfléchir. Un `?id=3` ajouté à l'URL ferait charger (et `save()` modifier)
 la ligne n°3. Passe seulement les champs attendus.
 
+## Les relations entre models
+
+Ajout (étape « Avancé - Les relations de model ») : un model décrit ses
+liens avec d'autres models dans un attribut **privé statique** `$relations`,
+avec les phrases du sujet. Exemple du blog :
+
+```php
+class ArticleModel extends Entity
+{
+    private static $relations = ['has many comments', 'has many tags'];
+}
+class CommentModel extends Entity
+{
+    private static $relations = ['has one article'];
+}
+class TagModel extends Entity
+{
+    private static $relations = ['has many articles'];
+}
+```
+
+`read()`, `find()`, `readAll()` et le constructeur avec un id renvoient
+alors aussi les enregistrements liés :
+
+```php
+$article = new ArticleModel(['id' => 1]);
+$article->comments;  // liste des commentaires de l'article
+$article->tags;      // liste de ses tags
+(new CommentModel(['id' => 5]))->article;  // UNE ligne, ou null
+```
+
+Les tables doivent suivre ces conventions :
+
+| Relation | Phrase | Ce que la base doit contenir |
+| --- | --- | --- |
+| 1 : N | `ArticleModel` : `'has many comments'` | une colonne `comments.article_id` |
+| N : 1 | `CommentModel` : `'has one article'` | la même colonne `comments.article_id` |
+| N : N | `'has many tags'` ET `TagModel` : `'has many articles'` | une table pivot `articles_tags` (`article_id`, `tag_id`) |
+
+La table pivot porte le nom des deux tables, dans l'ordre alphabétique,
+séparées par `_`. Une clé étrangère porte le nom de la table au singulier
+(sans le `s` final) suivi de `_id`.
+
+Les relations ne sont chargées que sur un niveau (les commentaires d'un
+article ne contiennent pas à leur tour leur article), et ne sont jamais
+enregistrées par `save()`.
+
 ## Tests
 
 Depuis la racine du projet : `php tests/run.php`
@@ -142,7 +189,7 @@ MAJEUR.MINEUR.CORRECTIF :
 Tant qu'on est en `0.x`, le framework est "en construction" : on monte la
 version MINEURE à chaque étape du sujet terminée (0.1.0 = étapes 1 à 3,
 0.2.0 = sécurité, routeur et controller, 0.3.0 = model et request,
-0.4.0 = ORM, 0.5.0 = entités...). La
+0.4.0 = ORM, 0.5.0 = entités, 0.6.0 = relations...). La
 **1.0.0** correspondra au sujet complet,
 le jour du rendu.
 

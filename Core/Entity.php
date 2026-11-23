@@ -5,6 +5,7 @@ namespace Core;
 use AllowDynamicProperties;
 use InvalidArgumentException;
 use PDO;
+use ReflectionClass;
 use ReflectionObject;
 use ReflectionProperty;
 
@@ -60,6 +61,53 @@ use ReflectionProperty;
  * avertissement "Deprecated". Or c'est exactement ce que demande le sujet :
  * un attribut public par clé du tableau. Cet "attribut PHP" (une étiquette
  * posée sur la classe) l'autorise pour Entity ET pour ses classes filles.
+ *
+ * Mise à jour (étape « Avancé - Les relations de model ») : un model peut
+ * décrire ses liens avec d'autres models dans un attribut privé statique
+ * $relations, avec les phrases du sujet :
+ *
+ *   class ArticleModel extends Entity
+ *   {
+ *       private static $relations = ['has many comments', 'has many tags'];
+ *   }
+ *   class CommentModel extends Entity
+ *   {
+ *       private static $relations = ['has one article'];
+ *   }
+ *   class TagModel extends Entity
+ *   {
+ *       private static $relations = ['has many articles'];
+ *   }
+ *
+ * read(), find(), readAll() et le constructeur avec un id renvoient alors
+ * AUSSI les enregistrements liés :
+ *
+ *   $article = new ArticleModel(['id' => 1]);
+ *   $article->comments;   // la liste des commentaires de l'article 1
+ *   $article->tags;       // la liste de ses tags
+ *   $comment = new CommentModel(['id' => 5]);
+ *   $comment->article;    // l'article du commentaire 5 (une seule ligne)
+ *
+ * Comment Entity reconnaît le type de chaque relation :
+ *   - 'has one article'   : comments contient article_id      -> N : 1 ;
+ *   - 'has many comments' : comments contient article_id      -> 1 : N ;
+ *   - 'has many tags' ET TagModel dit 'has many articles'     -> N : N,
+ *     les liens sont dans la table pivot articles_tags (les deux tables
+ *     dans l'ordre alphabétique, séparées par "_").
+ * Entity traduit ces phrases en tableaux pour l'ORM (getRelations()), et
+ * c'est l'ORM qui écrit les jointures SQL (ORM::readRelation()).
+ *
+ * Le plan du fichier gagne :
+ *   - getRelations() : traduit les phrases du model pour l'ORM ;
+ *   - des outils privés : declaredRelations(), parseRelation(),
+ *     modelClass() et relationKeys().
+ *
+ * Pourquoi Entity ne déclare-t-elle pas elle-même $relations ? Le sujet
+ * demande un attribut PRIVÉ dans chaque model. Or PHP interdit à une
+ * classe fille de redéclarer en "private" un attribut que sa classe mère
+ * déclare en "protected" ou "public" (on ne peut pas réduire la
+ * visibilité). Entity ne déclare donc rien, et lit l'attribut privé de
+ * chaque model avec la Reflection (voir declaredRelations()).
  */
 #[AllowDynamicProperties]
 abstract class Entity
@@ -162,10 +210,16 @@ abstract class Entity
         if (isset($params['id'])) {
             // Cas 2 : le retour de read() remplace le tableau. read() renvoie
             // null pour un id inexistant : "?? []" donne alors un tableau vide.
-            $params = $this->orm->read(static::getTable(), (int) $params['id']) ?? [];
+            $params = $this->orm->read(static::getTable(), (int) $params['id'], static::getRelations()) ?? [];
             // Ces valeurs viennent de la base : save() n'aura rien à
             // renvoyer tant qu'on ne les modifie pas.
-            $this->original = $params;
+            // Mise à jour (étape « Les relations de model ») : read() a aussi
+            // rempli les relations (ex. 'comments'). Elles deviennent des
+            // attributs comme les autres ($article->comments), mais ce ne
+            // sont pas des colonnes : array_diff_key() les retire des
+            // valeurs "telles qu'en base" (il garde les clés de $params
+            // absentes de relationKeys()).
+            $this->original = array_diff_key($params, self::relationKeys());
         }
 
         foreach ($params as $name => $value) {
@@ -248,11 +302,14 @@ abstract class Entity
      * OBJET ; read() renvoie un simple TABLEAU, pratique pour une vue.
      * Pertinence : UserController::showAction() l'utilise pour le profil.
      *
+     * Mise à jour (étape « Les relations de model ») : la ligne contient
+     * aussi une entrée par relation du model (voir getRelations()).
+     *
      * @return array|null la ligne (colonne => valeur), ou null si l'id n'existe pas
      */
     public function read(int $id): ?array
     {
-        return $this->orm->read(static::getTable(), $id);
+        return $this->orm->read(static::getTable(), $id, static::getRelations());
     }
 
     /**
@@ -306,11 +363,14 @@ abstract class Entity
      * PSR-1 impose le camelCase : readAll().
      * Pertinence : une page "liste des utilisateurs" ou "tous les articles".
      *
+     * Mise à jour (étape « Les relations de model ») : chaque ligne contient
+     * aussi ses enregistrements liés.
+     *
      * @return array la liste des lignes (un tableau associatif par ligne)
      */
     public function readAll(): array
     {
-        return $this->orm->find(static::getTable());
+        return $this->orm->find(static::getTable(), ORM::FIND_DEFAULTS, static::getRelations());
     }
 
     /**
@@ -323,11 +383,14 @@ abstract class Entity
      * sécurité (WHERE préparé, ORDER BY et LIMIT contrôlés) restent celles
      * de l'ORM.
      *
+     * Mise à jour (étape « Les relations de model ») : comme read(), chaque
+     * ligne trouvée contient aussi ses enregistrements liés.
+     *
      * @return array la liste des lignes
      */
     public function find(array $params = ORM::FIND_DEFAULTS): array
     {
-        return $this->orm->find(static::getTable(), $params);
+        return $this->orm->find(static::getTable(), $params, static::getRelations());
     }
 
     /**
@@ -349,6 +412,11 @@ abstract class Entity
      * d'aucune configuration ("convention plutôt que configuration", comme
      * CakePHP). Publique et statique : on peut la demander sans objet,
      * UserModel::getTable(), ce qui servira aux relations entre models.
+     *
+     * Mise à jour (étape « Les relations de model ») : c'est fait.
+     * getRelations() appelle getTable() sur l'AUTRE model d'une relation
+     * ($model::getTable(), avec le nom de la classe dans une variable),
+     * pour connaître sa table sans créer d'objet.
      */
     public static function getTable(): string
     {
@@ -362,6 +430,80 @@ abstract class Entity
         $name = preg_replace('/Model$/', '', end($parts));
 
         return strtolower($name) . 's';
+    }
+
+    /**
+     * Les relations du model, traduites pour l'ORM.
+     *
+     * Chaque phrase de $relations devient un tableau, celui qu'attendent
+     * ORM::read() et ORM::find(). Pour l'exemple du blog :
+     *
+     *   ArticleModel::getRelations() =
+     *     [['type' => 'has many',     'table' => 'comments', 'name' => 'comments'],
+     *      ['type' => 'many to many', 'table' => 'tags',     'name' => 'tags',
+     *       'pivot' => 'articles_tags']]
+     *   CommentModel::getRelations() =
+     *     [['type' => 'has one', 'table' => 'articles', 'name' => 'article']]
+     *
+     * 'name' est le nom de l'entrée ajoutée à la ligne : le mot écrit dans
+     * la phrase. 'has one article' donne donc une entrée 'article' (au
+     * singulier : il n'y en a qu'un), et 'has many comments' une entrée
+     * 'comments'.
+     *
+     * Comment distinguer 1 : N et N : N, puisque le sujet écrit 'has many'
+     * dans les deux cas ? Pour 'has many tags', on cherche le model de la
+     * table tags (TagModel, dans le même namespace). S'il dit lui aussi
+     * 'has many articles', la relation est 'has many' des DEUX côtés :
+     * c'est un N : N, rangé dans la table pivot articles_tags. Sinon, c'est
+     * un 1 : N (la table tags contiendrait alors article_id).
+     *
+     * Pourquoi ? Les phrases du sujet sont faites pour être lues par un
+     * humain ; l'ORM, lui, a besoin d'informations précises (quelle table,
+     * quel type, quelle table pivot).
+     * Pertinence : le model n'écrit qu'une phrase par relation, Entity
+     * déduit tout le reste grâce aux conventions (noms de tables, de
+     * models et de clés étrangères). Publique et statique : on peut
+     * l'afficher pour comprendre ce que fait le framework,
+     * var_dump(ArticleModel::getRelations()), sans créer d'objet.
+     *
+     * @return array la liste des relations (un tableau par relation)
+     * @throws InvalidArgumentException si une phrase n'est pas comprise
+     */
+    public static function getRelations(): array
+    {
+        $relations = [];
+        foreach (self::declaredRelations(static::class) as $declaration) {
+            // [$type, $name] = ... : la "déstructuration" range la 1re case
+            // du tableau renvoyé dans $type, la 2e dans $name.
+            [$type, $name] = self::parseRelation($declaration);
+
+            if ($type === 'has one') {
+                // 'has one article' : la table est celle d'ArticleModel s'il
+                // existe (il a pu choisir un autre nom), sinon "article" + "s".
+                $model = self::modelClass($name);
+                $relations[] = [
+                    'type' => 'has one',
+                    'table' => $model !== null ? $model::getTable() : $name . 's',
+                    'name' => $name,
+                ];
+                continue;
+            }
+
+            // 'has many tags' : 1 : N, sauf si TagModel répond 'has many articles'.
+            $relation = ['type' => 'has many', 'table' => $name, 'name' => $name];
+            $model = self::modelClass(ORM::singular($name));
+            if ($model !== null && in_array(['has many', static::getTable()], self::parsedRelations($model), true)) {
+                // La table pivot : les deux tables, triées par ordre
+                // alphabétique, pour que les DEUX models trouvent le même nom
+                // (articles_tags, que l'on parte d'ArticleModel ou de TagModel).
+                $tables = [static::getTable(), $name];
+                sort($tables);
+                $relation['type'] = 'many to many';
+                $relation['pivot'] = implode('_', $tables);
+            }
+            $relations[] = $relation;
+        }
+        return $relations;
     }
 
     /**
@@ -445,6 +587,11 @@ abstract class Entity
             $fields[$name] = $this->$name;
         }
 
+        // Mise à jour (étape « Les relations de model ») : les relations
+        // chargées ($article->comments) sont des attributs publics, mais pas
+        // des colonnes de la table : on ne les envoie jamais en base.
+        $fields = array_diff_key($fields, self::relationKeys());
+
         $columns = $this->columns();
         if ($columns !== []) {
             // array_flip : ['email', 'password'] -> ['email' => 0, 'password' => 1],
@@ -452,5 +599,125 @@ abstract class Entity
             $fields = array_intersect_key($fields, array_flip($columns));
         }
         return $fields;
+    }
+
+    /**
+     * Lit l'attribut privé statique $relations d'un model (ou [] s'il n'en
+     * a pas).
+     *
+     * Le sujet le veut "privé" : en temps normal, seule la classe qui le
+     * déclare peut le lire, pas Entity (sa classe mère), ni un autre model.
+     * La Reflection est l'outil de PHP qui permet d'INSPECTER une classe
+     * (ses attributs, ses méthodes...) : ReflectionProperty représente un
+     * attribut, et getValue() lit sa valeur, même privée (depuis PHP 8.1).
+     *
+     * Pourquoi ? getRelations() a besoin des phrases du model courant, et
+     * de celles de l'AUTRE model pour reconnaître un N : N.
+     * Pertinence : sans elle, il faudrait rendre $relations "protected"
+     * (moins strict que le sujet) ou demander à chaque model d'écrire une
+     * méthode qui le renvoie.
+     *
+     * @param string $class le nom complet du model, ex. "Model\ArticleModel"
+     * @return string[] les phrases, ex. ['has many comments']
+     * @throws InvalidArgumentException si $relations n'est pas un tableau statique
+     */
+    private static function declaredRelations(string $class): array
+    {
+        // property_exists() voit aussi les attributs privés.
+        if (!property_exists($class, 'relations')) {
+            return [];
+        }
+
+        $property = new ReflectionProperty($class, 'relations');
+        if (!$property->isStatic() || !is_array($property->getValue())) {
+            throw new InvalidArgumentException("$class::\$relations doit être un tableau statique");
+        }
+        return $property->getValue();
+    }
+
+    /**
+     * Les phrases d'un model, découpées : [['has many', 'comments'], ...].
+     *
+     * Pourquoi ? getRelations() compare les relations de l'autre model avec
+     * in_array() : c'est plus simple sur des phrases déjà découpées.
+     * Pertinence : un raccourci de deux lignes, pour que getRelations()
+     * reste lisible.
+     */
+    private static function parsedRelations(string $class): array
+    {
+        return array_map([self::class, 'parseRelation'], self::declaredRelations($class));
+    }
+
+    /**
+     * Découpe une phrase de relation : 'has many comments' -> ['has many', 'comments'].
+     *
+     * L'expression régulière, morceau par morceau :
+     *   ^ ... $              toute la phrase (début ... fin) ;
+     *   \s*                  des espaces, ou aucun ;
+     *   has\s+(many|one)     "has", des espaces, puis "many" OU "one"
+     *                        (les parenthèses "capturent" ce mot) ;
+     *   ([A-Za-z_]\w*)       le nom : une lettre ou "_", puis des lettres,
+     *                        chiffres ou "_" (\w), capturé lui aussi ;
+     *   le "i" final         majuscules ou minuscules ("Has Many" marche).
+     * L'espace entre many/one et le nom est facultatif (\s*) car le sujet
+     * écrit 'has many' . $table : collé, cela donne 'has manycomments'.
+     *
+     * Pourquoi ? Les phrases sont écrites à la main : une faute de frappe
+     * ('has meny comments') doit donner une erreur claire, pas une
+     * relation ignorée en silence.
+     * Pertinence : le nom capturé est vérifié par la regex comme un nom de
+     * table (lettres, chiffres, "_"), avant même que l'ORM le revérifie.
+     *
+     * @return array [le type ('has many' ou 'has one'), le nom]
+     * @throws InvalidArgumentException si la phrase n'est pas comprise
+     */
+    private static function parseRelation($declaration): array
+    {
+        if (!is_string($declaration) || !preg_match('/^\s*has\s+(many|one)\s*([A-Za-z_]\w*)\s*$/i', $declaration, $m)) {
+            throw new InvalidArgumentException('Relation invalide : ' . var_export($declaration, true));
+        }
+        // $m : la phrase entière dans $m[0], puis chaque partie capturée.
+        return ['has ' . strtolower($m[1]), $m[2]];
+    }
+
+    /**
+     * Le model qui correspond à un nom au singulier, s'il existe :
+     * 'tag' -> "Model\TagModel" (même namespace que le model courant).
+     *
+     * class_exists() demande à l'autoloader de charger la classe si besoin,
+     * et renvoie false si elle n'existe nulle part.
+     *
+     * Pourquoi ? Pour 'has one article', on veut la vraie table
+     * d'ArticleModel ; pour 'has many tags', les relations de TagModel.
+     * Pertinence : c'est la convention des models du projet (UserModel,
+     * ArticleModel...) qui évite d'écrire le nom de la classe dans la
+     * phrase. Renvoyer null (au lieu d'une erreur) permet une relation vers
+     * une table qui n'a pas (encore) de model.
+     *
+     * @return string|null le nom complet de la classe, ou null
+     */
+    private static function modelClass(string $singular): ?string
+    {
+        // getNamespaceName() : "Model" pour "Model\ArticleModel".
+        $namespace = (new ReflectionClass(static::class))->getNamespaceName();
+        $class = ($namespace !== '' ? $namespace . '\\' : '') . ucfirst($singular) . 'Model';
+
+        // is_subclass_of() : la classe doit aussi être un model (une Entity).
+        return class_exists($class) && is_subclass_of($class, self::class) ? $class : null;
+    }
+
+    /**
+     * Les noms des relations du model, en CLÉS : ['comments' => 0, 'tags' => 1].
+     *
+     * Pourquoi en clés ? Pour retirer les relations d'un tableau de champs
+     * avec array_diff_key(), qui compare les clés.
+     * Pertinence : le constructeur et getFields() s'en servent pour ne
+     * jamais traiter une relation comme une colonne de la table (un INSERT
+     * avec une colonne "comments" échouerait).
+     */
+    private static function relationKeys(): array
+    {
+        // array_column(..., 'name') : la valeur 'name' de chaque relation.
+        return array_flip(array_column(static::getRelations(), 'name'));
     }
 }
