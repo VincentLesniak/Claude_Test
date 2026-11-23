@@ -13,7 +13,10 @@ avec le numéro de version et la date (voir « Versionnage » dans le README).
 
 ## [Non publié]
 
-Partie « My cinema by PiePHP » du sujet.
+## [1.0.0] - 2026-11-23
+
+Partie « My cinema by PiePHP » du sujet : le sujet est complet, c'est la
+version du rendu.
 
 ### Ajouté
 - Mini-site my_cinema : tables `genres`, `films` et `historiques`
