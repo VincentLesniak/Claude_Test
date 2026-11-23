@@ -22,6 +22,17 @@ use PDO;
  *   $orm->find('articles', ['WHERE' => ['author' => 'Rodrigue'], 'LIMIT' => 10]);
  *   $orm->delete('articles', $id);
  *
+ * Mise à jour (revue de la PR) : chaque méthode a maintenant un paragraphe
+ * « Pourquoi ? » (le problème qu'elle résout) et « Pertinence » (ce qui se
+ * passerait sans elle, et qui l'utilise). Plan du fichier :
+ *   - 5 méthodes PUBLIQUES, celles du sujet, que les models appellent :
+ *     create, read, update, delete (le "CRUD") et find (la recherche) ;
+ *   - 5 méthodes PRIVÉES, des outils internes qu'on ne peut pas appeler
+ *     depuis l'extérieur : buildWhere et buildLimit FABRIQUENT des morceaux
+ *     de SQL, checkOrderBy, checkFields et checkName VÉRIFIENT ce qu'on va
+ *     coller dans le SQL. Les ranger à part évite de répéter le même code
+ *     dans chaque méthode publique, et un seul endroit à corriger si besoin.
+ *
  * Chaque méthode suit le prototype donné par le sujet. Seuls les noms de
  * paramètres et les types (int, array, bool...) ont été précisés.
  *
@@ -43,6 +54,10 @@ class ORM
      *   WHERE '1'         : une condition toujours vraie = toutes les lignes ;
      *   ORDER BY 'id ASC' : de la plus ancienne à la plus récente ;
      *   LIMIT ''          : pas de limite.
+     *
+     * Pourquoi une constante ? Elle sert deux fois : comme valeur par défaut
+     * du paramètre de find(), et pour compléter les clés que l'appelant n'a
+     * pas données. Elle donne aussi la liste des clés autorisées.
      */
     public const FIND_DEFAULTS = [
         'WHERE' => '1',
@@ -61,6 +76,11 @@ class ORM
      * Comme pour les models : par défaut, la connexion partagée de
      * Core\Database (lue dans config.json) ; les tests peuvent donner leur
      * propre base SQLite en mémoire.
+     *
+     * Pourquoi ? L'ORM a besoin d'une connexion pour exécuter ses requêtes.
+     * Pertinence : pouvoir la DONNER (au lieu de la créer ici) permet aux
+     * tests d'utiliser SQLite en mémoire, et à UserModel de partager sa
+     * propre connexion avec son ORM (une seule connexion par page).
      */
     public function __construct(?PDO $db = null)
     {
@@ -73,6 +93,13 @@ class ORM
      * Exemple : create('users', ['email' => 'a@b.c', 'password' => 'x']) exécute
      *   INSERT INTO users (email, password) VALUES (:email, :password)
      * avec les valeurs ['email' => 'a@b.c', 'password' => 'x'].
+     *
+     * Pourquoi ? C'est le C de CRUD : sans elle, impossible d'ajouter une
+     * ligne sans écrire un INSERT à la main dans chaque model.
+     * Pertinence : elle renvoie l'id créé, car c'est la base qui le choisit
+     * (AUTO_INCREMENT) et l'appelant en a presque toujours besoin juste
+     * après (ex. connecter l'utilisateur qu'on vient d'inscrire, ou
+     * rediriger vers /article/12). UserModel::create() et save() l'utilisent.
      *
      * @param string $table  le nom de la table
      * @param array  $fields colonne => valeur
@@ -109,6 +136,13 @@ class ORM
      * Quand l'id n'existe pas, il n'y a pas d'enregistrement : on renvoie
      * null, plus facile à tester qu'un tableau vide.
      *
+     * Pourquoi ? C'est le R de CRUD : le cas le plus fréquent est d'afficher
+     * UNE ligne précise (la page d'un article, le profil d'un utilisateur),
+     * et on la retrouve par son id, la clé primaire.
+     * Pertinence : find() saurait aussi le faire, mais renverrait une LISTE
+     * d'une ligne ; read() renvoie directement la ligne (ou null), ce qui
+     * rend le code des models plus court et plus lisible.
+     *
      * @return array|null la ligne (colonne => valeur), ou null si l'id n'existe pas
      */
     public function read(string $table, int $id): ?array
@@ -129,6 +163,13 @@ class ORM
      *
      * Exemple : update('users', 3, ['email' => 'new@b.c']) exécute
      *   UPDATE users SET email = :email WHERE id = :id
+     *
+     * Pourquoi ? C'est le U de CRUD : modifier une ligne existante (changer
+     * un email, corriger un titre) sans la supprimer et la recréer, ce qui
+     * changerait son id et casserait les liens vers elle.
+     * Pertinence : on ne modifie QUE les colonnes données, les autres
+     * gardent leur valeur. Le booléen dit si la ligne existait : le
+     * controller peut alors afficher « article introuvable ».
      *
      * @return bool true si une ligne a été modifiée
      */
@@ -159,6 +200,13 @@ class ORM
 
     /**
      * Supprime la ligne $id.
+     *
+     * Pourquoi ? C'est le D de CRUD : supprimer une ligne d'après son id
+     * (un compte fermé, un article retiré).
+     * Pertinence : le "WHERE id = :id" est écrit ici une fois pour toutes.
+     * Un DELETE sans WHERE effacerait TOUTE la table : en passant par
+     * delete(), cette erreur est impossible. Le booléen dit si la ligne
+     * existait vraiment.
      *
      * @return bool true si une ligne a été supprimée
      */
@@ -195,6 +243,14 @@ class ORM
      *
      * Exemple : find('articles', ['WHERE' => ['author' => 'Rodrigue'], 'LIMIT' => 5])
      *   SELECT * FROM articles WHERE author = :author ORDER BY id ASC LIMIT 5
+     *
+     * Pourquoi ? read() ne trouve une ligne que par son id. Or on cherche
+     * souvent autrement : un utilisateur par son email, les articles d'un
+     * auteur, les 10 derniers articles... find() couvre tous ces cas.
+     * Pertinence : c'est la méthode la plus souple de l'ORM, et donc celle
+     * qui demande le plus de vérifications (WHERE, ORDER BY, LIMIT), confiées
+     * aux méthodes privées plus bas. UserModel::readAll() et readByEmail()
+     * l'utilisent.
      *
      * @return array la liste des lignes (un tableau associatif par ligne)
      * @throws InvalidArgumentException pour une clé inconnue ou une valeur invalide
@@ -240,6 +296,13 @@ class ORM
      *   ['email' => 'a@b.c']        -> ['email = :email', ['email' => 'a@b.c']]
      *   ['email' => 'a', 'id' => 2] -> ['email = :email AND id = :id', [...]]
      *
+     * Pourquoi ? find() accepte deux formes de WHERE (chaîne ou tableau) ;
+     * cette méthode les ramène à UNE seule forme, que find() n'a plus qu'à
+     * coller dans la requête.
+     * Pertinence : c'est elle qui transforme ['email' => $email] en
+     * "email = :email" + une valeur PRÉPARÉE. C'est ce qui permet de
+     * chercher avec une saisie de visiteur sans risque d'injection SQL.
+     *
      * @param string|array $where
      * @return array [la condition SQL, les valeurs à préparer]
      */
@@ -271,6 +334,12 @@ class ORM
      * Vérifie ORDER BY : une liste de colonnes séparées par des virgules,
      * chacune suivie ou non de ASC ou DESC (majuscules ou minuscules).
      *
+     * Pourquoi ? ORDER BY contient des noms de colonnes, et PDO ne sait pas
+     * préparer des noms (seulement des valeurs). Il est donc collé tel quel
+     * dans le SQL : il faut le vérifier avant.
+     * Pertinence : sans elle, un tri venu de l'URL (ex. ?tri=...) pourrait
+     * contenir "id; DROP TABLE users" et serait exécuté.
+     *
      * @throws InvalidArgumentException si ce n'est pas le cas
      */
     private function checkOrderBy(string $orderBy): void
@@ -286,6 +355,14 @@ class ORM
 
     /**
      * Vérifie LIMIT et le remet en forme : "10" ou "20, 10" (début, nombre).
+     *
+     * Pourquoi ? Comme ORDER BY, LIMIT est collé dans le SQL. On aurait pu
+     * le préparer avec bindValue(..., PDO::PARAM_INT), mais execute($values)
+     * envoie tout comme du texte, et LIMIT accepte aussi la forme
+     * "début, nombre" : le vérifier ici reste plus simple, et aussi sûr.
+     * Pertinence : on accepte seulement des entiers positifs, donc rien
+     * d'autre ne peut se glisser dans la requête. Utile pour la pagination
+     * (page 3 de 10 articles = LIMIT 20, 10).
      *
      * @throws InvalidArgumentException si LIMIT n'est pas fait de nombres entiers
      */
@@ -310,6 +387,12 @@ class ORM
      *   - il faut au moins un champ (sinon la requête SQL serait invalide) ;
      *   - chaque nom de colonne doit passer checkName().
      *
+     * Pourquoi ? create(), update() et le WHERE en tableau de find() font
+     * la même vérification sur leurs colonnes : on l'écrit une seule fois ici.
+     * Pertinence : un tableau vide donnerait un SQL invalide ("INSERT INTO
+     * users () VALUES ()") et une erreur PDO difficile à comprendre ; on
+     * préfère un message clair, en français, avant d'aller en base.
+     *
      * @throws InvalidArgumentException si aucun champ ou si un nom est invalide
      */
     private function checkFields(array $fields): void
@@ -330,6 +413,13 @@ class ORM
      * général : l'ORM ne connaît pas les colonnes de chaque table, il refuse
      * donc tout ce qui ne RESSEMBLE pas à un nom. Le model, lui, peut garder
      * sa liste blanche pour être encore plus strict.
+     *
+     * Pourquoi ? Les noms de table et de colonne sont collés dans le SQL
+     * (PDO ne peut pas les préparer). C'est la seule porte d'entrée
+     * restante pour une injection SQL : checkName() la ferme.
+     * Pertinence : TOUTES les méthodes publiques l'appellent sur la table,
+     * et checkFields() sur chaque colonne. C'est le dernier verrou de
+     * sécurité de l'ORM, même si un model oublie sa propre liste blanche.
      *
      * @throws InvalidArgumentException si le nom contient autre chose
      */
