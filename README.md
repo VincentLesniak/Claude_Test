@@ -94,8 +94,8 @@ la version de `VERSION` a bien sa section dans le CHANGELOG.
 
 ### Branches
 
-- `main` : uniquement les versions publiées. Chaque commit de `main` porte
-  un tag `vX.Y.Z`. C'est ce qu'on rend ou ce qu'on montre en soutenance.
+- `main` : uniquement les versions publiées, envoyées directement depuis
+  `dev` (sans PR). Chaque version porte un tag `vX.Y.Z`. C'est ce qu'on rend ou ce qu'on montre en soutenance.
 - `dev` : la branche d'intégration. Tout le travail en cours y est
   fusionné, via des pull requests validées par le CI.
 - une branche par fonctionnalité (ex. `feature/routeur`), créée depuis
@@ -109,7 +109,11 @@ sous la main, même si `dev` est cassé en plein milieu d'une étape.
 1. Sur `dev`, renommer « Non publié » en `[X.Y.Z] - AAAA-MM-JJ` dans le
    CHANGELOG, recréer une section « Non publié » vide au-dessus, et écrire
    `X.Y.Z` dans `VERSION`.
-2. Fusionner `dev` dans `main` (pull request `dev` -> `main`).
+2. Envoyer la version directement sur `main`, sans pull request : le code
+   a déjà été relu et validé par le CI dans les PR vers `dev`.
+   `git checkout main && git merge --ff-only dev && git push origin main`
+   (`--ff-only` refuse la fusion si `main` contient un commit absent de
+   `dev` : `main` reste ainsi une simple copie des versions de `dev`.)
 3. Sur `main`, créer et pousser le tag :
    `git tag -a vX.Y.Z -m "Version X.Y.Z" && git push origin vX.Y.Z`
 4. Le workflow `.github/workflows/release.yml` vérifie que le tag
