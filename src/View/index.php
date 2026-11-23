@@ -20,8 +20,11 @@
 <!doctype html>
 <html lang="fr">
 <head>
+    <!-- Encodage des caractères : indispensable pour les accents. -->
     <meta charset="UTF-8">
+    <!-- Adapte l'affichage à la largeur de l'écran (mobile). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Le <title> est obligatoire pour que la page soit valide W3C. -->
     <?php /* Si l'action n'a pas transmis de $title, on affiche seulement "PiePHP". */ ?>
     <title><?= isset($title) ? 'PiePHP - ' . htmlspecialchars($title) : 'PiePHP' ?></title>
 </head>

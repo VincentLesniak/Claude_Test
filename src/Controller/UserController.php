@@ -13,7 +13,7 @@ use Core\Controller;
  * Controller de l'entité "user" (avec UserModel et la table users).
  *
  * Convention de nommage utilisée par le routeur :
- *   URL /user/login  ->  classe UserController  ->  méthode loginAction()
+ *   URL /user/add  ->  classe UserController  ->  méthode addAction()
  * Le suffixe "Action" distingue les méthodes appelables depuis une URL des
  * autres méthodes de la classe : une méthode helper() ne sera jamais
  * accessible par /user/helper, car le Core cherche "helperAction".

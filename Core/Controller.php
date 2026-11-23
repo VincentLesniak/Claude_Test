@@ -8,8 +8,13 @@ use RuntimeException;
  * Classe mère de tous les controllers de l'application.
  *
  * Chaque controller (UserController, AppController...) écrit "extends Controller"
- * et hérite donc de tout ce qui est défini ici : la méthode render() est écrite
- * une seule fois et disponible dans tous les controllers.
+ * et hérite donc de tout ce qui est défini ici. Pour l'instant elle est vide,
+ * mais c'est ici qu'on ajoutera à l'étape suivante la méthode render() qui
+ * affiche une vue dans le layout : le code sera écrit une seule fois et
+ * disponible dans tous les controllers.
+ *
+ * Mise à jour (étape "Le Controller") : c'est fait, la classe n'est plus vide,
+ * render() et __destruct() sont codées ci-dessous.
  *
  * RAPPEL DU PRINCIPE (sujet, partie "Le Controller") :
  *   1. l'action appelle $this->render('login') ;

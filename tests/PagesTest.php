@@ -9,8 +9,9 @@ use Tests\Assert;
 use Tests\Server;
 
 /**
- * Lit une page avec DOMDocument, qui analyse le HTML comme un navigateur :
- * on peut ensuite chercher des balises précises au lieu de comparer du texte.
+ * Récupère une page et la donne à DOMDocument.
+ * DOMDocument lit le HTML comme un navigateur et permet de chercher
+ * des balises précises au lieu de comparer du texte.
  */
 $dom = function (string $path): DOMDocument {
     $dom = new DOMDocument();

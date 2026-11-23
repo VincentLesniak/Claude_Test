@@ -1,20 +1,29 @@
 <?php
 /**
- * Vue : formulaire de connexion (UserController::loginAction, URL /user/login)
+ * Vue : formulaire de connexion (src/View/User/login.php)
+ * Affichée par UserController::loginAction(), URL /user/login.
  *
  * Dans le modèle MVC, une VUE ne contient que de l'affichage : pas de
- * requête SQL, pas de logique métier. Ce n'est plus une page HTML complète :
- * le <!doctype>, le <head> et le <title> sont dans le layout
- * (src/View/index.php), ajouté autour par la méthode render() du Controller.
+ * requête SQL, pas de logique métier. Ici c'est encore une page HTML
+ * complète, car nous n'avons pas de "layout" commun (il viendra plus tard
+ * avec la méthode render() du Controller).
+ *
+ * Mise à jour (étape "Le Controller") : le layout est arrivé. Ce fichier
+ * n'est plus une page complète : le <!doctype>, le <head> et le <title> sont
+ * dans src/View/index.php, ajouté autour par render().
  *
  * Fonctionnement du formulaire :
  *  - method="post" : les données sont envoyées dans le CORPS de la requête
  *    HTTP (invisibles dans l'URL). PHP les range dans le tableau $_POST.
  *    Avec method="get", elles iraient dans l'URL (?email=...) et dans $_GET.
  *    Pour un mot de passe, on utilise toujours POST.
- *  - action="<?= BASE_URI ?>/user/login" : l'URL qui va RECEVOIR les
- *    données, ici loginAction elle-même (elle saura les traiter quand le
- *    model sera prêt). BASE_URI vaut "/PiePHP" chez toi (voir index.php).
+ *  - action="/PiePHP/index.php" : l'URL qui va RECEVOIR les données.
+ *    Le chemin dépend de l'endroit où est installé le projet
+ *    (ici /var/www/html/PiePHP -> http://localhost/PiePHP/).
+ *    Mise à jour (étape "Le Controller") : l'action est maintenant
+ *    "<?= BASE_URI ?>/user/login", c'est-à-dire loginAction elle-même (elle
+ *    saura traiter les données quand le model sera prêt). BASE_URI vaut
+ *    "/PiePHP" chez toi (voir index.php) : plus besoin d'écrire le chemin en dur.
  *  - l'attribut name="..." de chaque champ devient la CLÉ dans $_POST :
  *    name="email" -> $_POST['email'].
  *
